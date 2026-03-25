@@ -1,0 +1,75 @@
+{
+  "pattern": "starfield",
+  "params": {
+    "STAR_COUNT": 500,
+    "SPEED": 1.0,
+    "FOV": 50.0,
+    "TWINKLE": 0.5,
+    "COLOR_SHIFT": 0.0,
+    "COLORMAP": "cyber_shift",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "STAR_COUNT": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "replace"
+    },
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "FOV": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "TWINKLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "scale"
+    },
+    "COLOR_SHIFT": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -40,
+      "gain_db": -6,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

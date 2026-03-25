@@ -1,0 +1,69 @@
+{
+  "pattern": "lissajous_loop",
+  "params": {
+    "X_FREQ": 5.1000000000000005,
+    "Y_FREQ": 4.2,
+    "PHASE": 0.5,
+    "COLOR_CENTER": 0.61,
+    "COLORMAP": "warm_rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "X_FREQ": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "Y_FREQ": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "PHASE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "COLOR_CENTER": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 0.5,
+      "offset": 0.03,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 0.5,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

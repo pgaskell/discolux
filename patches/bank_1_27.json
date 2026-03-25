@@ -1,0 +1,136 @@
+{
+  "pattern": "drops",
+  "params": {
+    "BANDS": 16,
+    "SPEED": 10.950000000000001,
+    "BAND_WIDTH": 1.8,
+    "COLOR_CYCLE": 0.62,
+    "COLORMAP": "magenta_white",
+    "SPRITE": "none",
+    "FREQUENCY": 8.4,
+    "AMPLITUDE": 1.6,
+    "LUT_SHIFT": 0.5,
+    "EXPLOSION_RATE": 0.5,
+    "PARTICLE_COUNT": 69,
+    "PARTICLE_SPEED": 5.0,
+    "FADE_TIME": 1.0,
+    "HEART_COUNT": 1,
+    "BEAT_SPEED": 1.51,
+    "SIZE": 0.17,
+    "SPIRAL_SPEED": -0.05,
+    "NUM_ARMS": 1,
+    "ARM_THICKNESS": 0.5,
+    "NUM_WAVES": 3,
+    "WAVE_SPEED": 0.07,
+    "SPATIAL_FREQ": 0.31,
+    "COLOR_CYCLE_SPEED": 0.022,
+    "STAR_COUNT": 30,
+    "FOV": 420.0,
+    "TWINKLE": 0.84,
+    "AXES": 9,
+    "ROTATION_SPEED": 0.1,
+    "COMPLEXITY": 0.5,
+    "SCROLL_SPEED": 1.0,
+    "Y_SCALE": 0.24,
+    "THICKNESS": 2.5,
+    "COLOR_OFFSET": 0.37,
+    "STRIPES": 2,
+    "COLOR_SHIFT": 0.035,
+    "NUM_GENERATORS": 1,
+    "MOVE_SPEED": 0.0,
+    "PALETTE_SHIFT": 0.02,
+    "CIRCLE_THICKNESS": 1.0,
+    "DROP_RATE": 0.97,
+    "MIN_SIZE": 0.6000000000000001,
+    "MAX_SIZE": 2.5,
+    "DROP_SPEED": 4.800000000000001,
+    "BINS": 24,
+    "RADIUS_SCALE": 1.72,
+    "COLOR_SHIFT_SPEED": 0.52,
+    "X_FREQ": 1.5,
+    "Y_FREQ": 4.5,
+    "PHASE": 0.56,
+    "COLOR_CENTER": 0.5,
+    "TRAIL": 0.91,
+    "ZOOM_SPEED": 0.01,
+    "SPACING": 5.2,
+    "SPAWN_RATE": 0.88,
+    "SWIRL_STRENGTH": 0.75,
+    "RADIAL_SPEED": 0.39,
+    "LIFESPAN": 7.6000000000000005,
+    "COLOR_POS": 0.0,
+    "HOLD_TIME": 0.5,
+    "GAIN_DB": -4.0,
+    "DISPLAY_MODE": 2,
+    "BLOB_SIZE": 3.0,
+    "TRAIL_DECAY": 0.9500000000000001,
+    "speed": 0.5,
+    "size": 12.5,
+    "color_shift": 0.44,
+    "fade": 0.64,
+    "HEX_SIZE": 5.9,
+    "DIRECTION": 0.86,
+    "STRIPE_SPEED": 0.1,
+    "STRIPE_WIDTH": 1.0,
+    "STRIPE_ANGLE": 45.0,
+    "WAVE_SCALE": 0.92
+  },
+  "modulation": {
+    "DROP_RATE": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "MIN_SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "scale"
+    },
+    "MAX_SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "scale"
+    },
+    "DROP_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -21,
+      "gain_db": 7,
+      "attack": 0.005,
+      "release": 0.15,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

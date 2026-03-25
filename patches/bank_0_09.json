@@ -1,0 +1,61 @@
+{
+  "pattern": "plasma",
+  "params": {
+    "NUM_GENERATORS": 2,
+    "MOVE_SPEED": -0.01,
+    "COLOR_CYCLE_SPEED": 0.007,
+    "COLORMAP": "hsv_full",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "NUM_GENERATORS": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "MOVE_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -40,
+      "gain_db": 10,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -40,
+      "gain_db": 10,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

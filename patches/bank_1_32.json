@@ -1,0 +1,69 @@
+{
+  "pattern": "chasing_spirals",
+  "params": {
+    "SPIRALS": 3,
+    "SPEED": 0.18,
+    "TWIST": 2.0,
+    "COLOR_CYCLE": 0.15,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPIRALS": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "TWIST": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

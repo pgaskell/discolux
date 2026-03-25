@@ -1,0 +1,10 @@
+matrix_width: 40
+matrix_height: 12
+wled_host: 10.0.0.2
+wled_timeout: 0.5
+led_protocol: DRGB
+frame_rate: 30
+cycle_beats: 16
+auto_bpm: true
+brightness: 1.0
+mic_sensitivity: 1.55

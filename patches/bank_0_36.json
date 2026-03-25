@@ -1,0 +1,67 @@
+{
+  "pattern": "drops",
+  "params": {
+    "DROP_RATE": 0.4,
+    "MIN_SIZE": 3.2,
+    "MAX_SIZE": 7.2,
+    "DROP_SPEED": 1.9000000000000001,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "DROP_RATE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "MIN_SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "scale"
+    },
+    "MAX_SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "scale"
+    },
+    "DROP_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

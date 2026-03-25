@@ -1,0 +1,43 @@
+You are helping with a Python project that drives an LED wall. Each pattern is a Python file in the patterns folder and must follow these conventions:
+
+Each pattern is a Python file with a Pattern class that inherits from BasePattern.
+Each pattern defines a PARAMS dictionary describing its modulateable parameters (see examples below).
+The Pattern class must implement a render(self, lfo_signals=None) method that returns a flat list of (r, g, b, 0) tuples, one per pixel, for the current frame.
+The pattern should support color LUTs (colormaps) via a "COLORMAP" parameter, using the global COLORMAPS dictionary.
+The pattern should use the apply_modulation function for any modulateable parameter if mod_active is set.
+The pattern should be visually creative and have at least 4 modulateable parameters.
+The pattern should work for any wall aspect ratio and resolution.
+The pattern should be self-contained and ready to drop into the patterns folder.
+Example PARAMS:
+
+PARAMS = {
+    "SPEED": {
+        "default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1,
+        "modulatable": True
+    },
+    "SIZE": {
+        "default": 0.5, "min": 0.1, "max": 1.0, "step": 0.01,
+        "modulatable": True
+    },
+    "COLOR_CYCLE": {
+        "default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01,
+        "modulatable": True
+    },
+    "COLORMAP": {
+        "default": "jet", "options": list(COLORMAPS.keys()),
+        "modulatable": False
+    }
+}
+
+Instructions:
+
+Propose a creative visual effect for the pattern and describe it briefly.
+
+Write the full Python code for the pattern, following the conventions above.
+
+Ensure the pattern supports color LUTs and modulation.
+
+Make sure the code is ready to drop into the patterns folder.
+
+Example request:
+"Create a pattern called starfield.py that simulates flying through stars, with parameters for star count, speed, color cycle, and trail length."

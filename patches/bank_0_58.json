@@ -1,0 +1,69 @@
+{
+  "pattern": "fireworks",
+  "params": {
+    "EXPLOSION_RATE": 0.5,
+    "PARTICLE_COUNT": 69,
+    "PARTICLE_SPEED": 5.0,
+    "FADE_TIME": 1.0,
+    "COLORMAP": "green_blue",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "EXPLOSION_RATE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "PARTICLE_COUNT": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "replace"
+    },
+    "PARTICLE_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "FADE_TIME": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -5,
+      "gain_db": 7,
+      "attack": 0.001,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -15,
+      "gain_db": 1,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

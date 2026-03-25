@@ -1,0 +1,114 @@
+{
+  "pattern": "tunnel_circle",
+  "params": {
+    "STAR_COUNT": 75,
+    "SPEED": 1.32,
+    "TRAIL": 0.6,
+    "COLOR_CYCLE": 0.58,
+    "COLORMAP": "magenta_white",
+    "SPRITE": "none",
+    "SYMMETRY": 4,
+    "TWIST": 4.6000000000000005,
+    "NUM_WAVES": 1,
+    "WAVE_SPEED": 0.02,
+    "SPATIAL_FREQ": 0.31,
+    "COLOR_CYCLE_SPEED": 0.01,
+    "FOV": 50.0,
+    "TWINKLE": 0.5,
+    "SPIRAL_SPEED": -0.02,
+    "NUM_ARMS": 3,
+    "ARM_THICKNESS": 0.42,
+    "HEX_SIZE": 5.9,
+    "DIRECTION": 0.86,
+    "speed": 0.52,
+    "size": 13.200000000000001,
+    "color_shift": 0.18,
+    "fade": 0.8,
+    "NUM_GENERATORS": 1,
+    "MOVE_SPEED": 0.0,
+    "STRIPE_SPEED": 0.62,
+    "STRIPE_WIDTH": 2.0,
+    "STRIPE_ANGLE": 91.0,
+    "WAVES": 4,
+    "HEART_COUNT": 7,
+    "BEAT_SPEED": 1.98,
+    "SIZE": 0.44,
+    "X_FREQ": 4.7,
+    "Y_FREQ": 4.7,
+    "PHASE": 0.21,
+    "COLOR_CENTER": 0.5,
+    "DROP_RATE": 0.97,
+    "MIN_SIZE": 0.6000000000000001,
+    "MAX_SIZE": 2.5,
+    "DROP_SPEED": 4.800000000000001,
+    "THICKNESS": 1.7000000000000002,
+    "SPACING": 3.2,
+    "RING_SPACING": 0.15,
+    "EXPANSION_SPEED": 4.05,
+    "RING_THICKNESS": 0.03,
+    "COLOR_SHIFT": 0.01,
+    "ZOOM_SPEED": 1.02,
+    "FREQUENCY": 7.2,
+    "AMPLITUDE": 0.14,
+    "LUT_SHIFT": 0.43,
+    "AXES": 7,
+    "ROTATION_SPEED": 0.8,
+    "COMPLEXITY": 0.5,
+    "BANDS": 16,
+    "BAND_WIDTH": 1.8,
+    "STRIPES": 2
+  },
+  "modulation": {
+    "ZOOM_SPEED": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "SPACING": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 1.0,
+      "offset": 0.0,
+      "sync_mode": "free",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": 0,
+      "attack": 0.005,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}
