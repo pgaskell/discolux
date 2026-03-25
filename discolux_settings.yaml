@@ -4,7 +4,7 @@ wled_host: 10.0.0.2
 wled_timeout: 0.5
 led_protocol: DRGB
 frame_rate: 30
-cycle_beats: 16
-auto_bpm: true
-brightness: 1.0
-mic_sensitivity: 1.55
+cycle_beats: 32
+auto_bpm: false
+brightness: 0.52
+mic_sensitivity: 0.98

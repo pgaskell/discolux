@@ -688,6 +688,106 @@ def create_sliders(param_specs, current_values):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Randomize LFO / ENV / modulation assignments
+# ═══════════════════════════════════════════════════════════════════════════
+
+_LFO_WAVEFORMS = ["sine", "square", "triangle", "saw"]
+_LFO_BEAT_OPTIONS = ["1/4", "1/2", "1", "2", "4"]
+_LFO_BEAT_VALUES = {"1/4": 0.25, "1/2": 0.5, "1": 1.0, "2": 2.0, "4": 4.0}
+_ENV_ATK_OPTIONS = ["1ms", "5ms", "10ms", "20ms"]
+_ENV_ATK_VALUES = {"1ms": 0.001, "5ms": 0.005, "10ms": 0.010, "20ms": 0.020}
+_ENV_REL_OPTIONS = ["25ms", "50ms", "100ms", "150ms"]
+_ENV_REL_VALUES = {"25ms": 0.025, "50ms": 0.050, "100ms": 0.100, "150ms": 0.150}
+_ENV_MODES = ["up", "down", "updown"]
+_MOD_SOURCES = ["lfo1", "lfo2", "envl", "envh"]
+
+
+def _randomize_lfo(panel):
+    """Randomize an LFO panel — always quantized mode."""
+    wf = random.choice(_LFO_WAVEFORMS)
+    panel.config["waveform"] = wf
+    panel.waveform_dropdown.selected = wf
+
+    depth = round(random.uniform(0.0, 1.0), 2)
+    panel.config["depth"] = depth
+    panel.depth_slider.value = depth
+
+    offset = round(random.uniform(-1.0, 1.0), 2)
+    panel.config["offset"] = offset
+    panel.offset_slider.value = offset
+
+    # Always quantized
+    panel.config["sync_mode"] = "quantized"
+    beat_label = random.choice(_LFO_BEAT_OPTIONS)
+    panel.config["period_beats"] = _LFO_BEAT_VALUES[beat_label]
+    panel.beat_dropdown.selected = beat_label
+
+
+def _randomize_env(panel):
+    """Randomize an envelope panel."""
+    th = random.randint(-40, 20)
+    panel.config["threshold_db"] = th
+    panel.th_slider.value = th
+
+    gn = random.randint(-40, 10)
+    panel.config["gain_db"] = gn
+    panel.gn_slider.value = gn
+
+    atk = random.choice(_ENV_ATK_OPTIONS)
+    panel.config["attack"] = _ENV_ATK_VALUES[atk]
+    panel.atk_dd.selected = atk
+
+    rel = random.choice(_ENV_REL_OPTIONS)
+    panel.config["release"] = _ENV_REL_VALUES[rel]
+    panel.rel_dd.selected = rel
+
+    mode = random.choice(_ENV_MODES)
+    panel.config["mode"] = mode
+    panel.mode_dd.selected = mode
+
+
+def _randomize_mod(lfo1_p, lfo2_p, envl_p, envh_p, mod_cbs, pspecs):
+    """Randomize LFOs, ENVs, and modulation routing for all modulatable params."""
+    _randomize_lfo(lfo1_p)
+    _randomize_lfo(lfo2_p)
+    _randomize_env(envl_p)
+    _randomize_env(envh_p)
+
+    # Update the global configs so evaluate_lfos / evaluate_env pick them up
+    from lfo import LFO_CONFIG
+    from audio_env import ENV_CONFIG
+    LFO_CONFIG["lfo1"].update(lfo1_p.config)
+    LFO_CONFIG["lfo2"].update(lfo2_p.config)
+    ENV_CONFIG["envl"].update(envl_p.config)
+    ENV_CONFIG["envh"].update(envh_p.config)
+
+    # Gather modulatable param names
+    mod_params = [k for k, spec in pspecs.items()
+                  if isinstance(spec, dict) and spec.get("modulatable")]
+
+    # For each modulatable param, randomly decide: no mod, or one source
+    for pname in mod_params:
+        meta = pspecs.get(pname)
+        if not meta:
+            continue
+        if random.random() < 0.4:
+            # No modulation (40% chance)
+            meta["mod_active"] = False
+            meta["mod_source"] = None
+            for cb in mod_cbs:
+                if cb.param_name == pname:
+                    cb.active = False
+        else:
+            # Pick a random source
+            src = random.choice(_MOD_SOURCES)
+            meta["mod_active"] = True
+            meta["mod_source"] = src
+            for cb in mod_cbs:
+                if cb.param_name == pname:
+                    cb.active = (cb.source_id == src)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Main UI loop
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -744,6 +844,18 @@ def launch_ui(wall=None):
     envh_p = EnvPanel("envh", RX, 310, ENV_CONFIG["envh"])
     mod_panels = [lfo1_p, lfo2_p, envl_p, envh_p]
 
+    # ── EDIT-tab randomize buttons (centred above tab bar) ──────────────
+    _edit_btn_w = 140
+    _edit_btn_h = 32
+    _edit_btn_gap = 10
+    _edit_btn_total = 2 * _edit_btn_w + _edit_btn_gap
+    _edit_mid_x = 220 + (RX - 10 - 220) // 2   # centre of simulator area
+    _edit_btn_y = CONTENT_H - _edit_btn_h - 6
+    rnd_settings_btn = pygame.Rect(_edit_mid_x - _edit_btn_total // 2,
+                                   _edit_btn_y, _edit_btn_w, _edit_btn_h)
+    rnd_pattern_btn = pygame.Rect(_edit_mid_x - _edit_btn_total // 2 + _edit_btn_w + _edit_btn_gap,
+                                  _edit_btn_y, _edit_btn_w, _edit_btn_h)
+
     # ── PATCH-tab state ─────────────────────────────────────────────────
     patches_arr = [None] * TOTAL_SLOTS
     patch_icons = [None] * TOTAL_SLOTS
@@ -765,22 +877,60 @@ def launch_ui(wall=None):
             py = GRID_Y + row * (SLOT_SIZE + SLOT_SP)
             patch_rects.append(pygame.Rect(px, py, SLOT_SIZE, SLOT_SIZE))
 
-    # Buttons on the right (larger, moved down)
+    # Buttons on the right – vertically centered in content area
     BTN_X = GRID_X + GRID_TOTAL_W + 15
     BTN_W = SCREEN_W - BTN_X - 10
-    save_btn = pygame.Rect(BTN_X, 60, BTN_W, 50)
-    del_btn = pygame.Rect(BTN_X, 120, BTN_W, 50)
-    tap_btn = pygame.Rect(BTN_X, 190, BTN_W, 60)
+    # Total height of right-side controls block:
+    #   save(36) + 4 + del(36) + 4 + tap(50) + 6 + rnd row(32) + 6
+    #   + bank row(32) + 6 + beat row1(28) + 3 + beat row2(28)
+    _rblock_h = 36 + 4 + 36 + 4 + 50 + 6 + 32 + 6 + 32 + 6 + 28 + 3 + 28
+    _ry0 = max(6, (CONTENT_H - _rblock_h) // 2)
+
+    save_btn = pygame.Rect(BTN_X, _ry0, BTN_W, 36)
+    del_btn = pygame.Rect(BTN_X, _ry0 + 40, BTN_W, 36)
+    tap_btn = pygame.Rect(BTN_X, _ry0 + 80, BTN_W, 50)
     tap_times = []
 
-    # bank nav (below buttons on the right)
-    bank_left_rect = pygame.Rect(BTN_X, 310, 35, 40)
-    bank_right_rect = pygame.Rect(BTN_X + BTN_W - 35, 310, 35, 40)
-    bank_label_rect = pygame.Rect(BTN_X + 37, 310, BTN_W - 74, 40)
+    # RND + Global/Bank buttons
+    rnd_btn = pygame.Rect(BTN_X, _ry0 + 136, BTN_W // 2 - 3, 32)
+    rnd_mode_btn = pygame.Rect(BTN_X + BTN_W // 2 + 3, _ry0 + 136, BTN_W // 2 - 3, 32)
 
-    # RND + Global/Bank buttons (above bank nav)
-    rnd_btn = pygame.Rect(BTN_X, 260, BTN_W // 2 - 3, 40)
-    rnd_mode_btn = pygame.Rect(BTN_X + BTN_W // 2 + 3, 260, BTN_W // 2 - 3, 40)
+    # bank nav
+    bank_left_rect = pygame.Rect(BTN_X, _ry0 + 174, 35, 32)
+    bank_right_rect = pygame.Rect(BTN_X + BTN_W - 35, _ry0 + 174, 35, 32)
+    bank_label_rect = pygame.Rect(BTN_X + 37, _ry0 + 174, BTN_W - 74, 32)
+
+    # Beat-count buttons (2 rows of 3, below bank nav on PATCH tab)
+    BEAT_OPTIONS = [1, 2, 4, 8, 16, 32]
+    _beat_row_y = _ry0 + 212
+    _beat_bw = (BTN_W - 6) // 3   # 3 buttons per row with 3px gaps
+    _beat_bh = 28
+    beat_btns = []
+    for idx, val in enumerate(BEAT_OPTIONS):
+        row, col = divmod(idx, 3)
+        bx = BTN_X + col * (_beat_bw + 3)
+        by = _beat_row_y + row * (_beat_bh + 3)
+        beat_btns.append((val, pygame.Rect(bx, by, _beat_bw, _beat_bh)))
+
+    # ── Solid colour buttons (3×3 grid, below preview on PATCH tab) ────
+    SOLID_COLORS = [
+        ("R", (255, 0, 0)),     ("G", (0, 255, 0)),     ("B", (0, 0, 255)),
+        ("C", (0, 255, 255)),   ("M", (255, 0, 255)),   ("Y", (255, 255, 0)),
+        ("O", (255, 140, 0)),   ("W", (255, 255, 255)), ("K", (0, 0, 0)),
+    ]
+    _sc_gap = 3
+    _sc_size = (thumb_rect.width - 2 * _sc_gap) // 3   # fill preview width
+    _sc_total_w = 3 * _sc_size + 2 * _sc_gap
+    _sc_x0 = thumb_rect.x + (thumb_rect.width - _sc_total_w) // 2
+    _sc_y0 = thumb_rect.bottom + 8
+    solid_btns = []
+    for idx, (lbl, col) in enumerate(SOLID_COLORS):
+        row, col_i = divmod(idx, 3)
+        sr = pygame.Rect(_sc_x0 + col_i * (_sc_size + _sc_gap),
+                         _sc_y0 + row * (_sc_size + _sc_gap),
+                         _sc_size, _sc_size)
+        solid_btns.append((lbl, SOLID_COLORS[idx][1], sr))
+    solid_override = None  # when set, overrides frame output with solid colour
 
     # ── CONFIG-tab state ────────────────────────────────────────────────
     import config as _cfg
@@ -801,25 +951,15 @@ def launch_ui(wall=None):
 
     last_cycle_time = time.time()
 
-    # Beat-count button row (replaces dropdown)
-    BEAT_OPTIONS = [1, 2, 4, 8, 16, 32]
-    beat_btn_w = 38
-    beat_btn_h = 28
-    beat_btn_y = 10
-    beat_btns = []
-    for idx, val in enumerate(BEAT_OPTIONS):
-        bx = 30 + idx * (beat_btn_w + 4)
-        beat_btns.append((val, pygame.Rect(bx, beat_btn_y, beat_btn_w, beat_btn_h)))
-
     # SYNC button + large BPM readout to its right
-    sync_btn = pygame.Rect(30, 50, 120, 40)
-    bpm_display_rect = pygame.Rect(160, 50, 130, 40)
+    sync_btn = pygame.Rect(30, 20, 120, 40)
+    bpm_display_rect = pygame.Rect(160, 20, 130, 40)
 
-    bright_slider = HSlider("brightness", brightness, 0.0, 1.0, 0.01, 30, 120, 200)
+    bright_slider = HSlider("brightness", brightness, 0.0, 1.0, 0.01, 30, 90, 200)
 
     # Mic sensitivity slider + level meter
-    mic_slider = HSlider("mic_sens", mic_sensitivity, 0.1, 3.0, 0.01, 30, 210, 200)
-    mic_level_rect = pygame.Rect(30, 240, 200, 12)
+    mic_slider = HSlider("mic_sens", mic_sensitivity, 0.1, 3.0, 0.01, 30, 180, 200)
+    mic_level_rect = pygame.Rect(30, 210, 200, 12)
 
     # Matrix dimension controls
     dim_options = [str(i) for i in range(4, 65)]
@@ -949,9 +1089,72 @@ def launch_ui(wall=None):
                     cmap_dd.handle_event(event)
                     sprite_dd.handle_event(event)
 
+                    # ── Randomize buttons ───────────────────────────────
+                    if rnd_settings_btn.collidepoint(event.pos):
+                        # Randomize current pattern's slider params + LUT
+                        for s in sliders:
+                            s.value = round(random.uniform(s.min, s.max) / s.step) * s.step
+                            if s.valid_values:
+                                s.value = random.choice(s.valid_values)
+                            params[s.name] = s.value
+                        # Randomize LUT (but not sprite)
+                        new_cmap = random.choice(cmap_names)
+                        cmap_dd.selected = new_cmap
+                        params["COLORMAP"] = new_cmap
+                        pattern.update_params(params)
+                        # Randomize LFOs (Q mode only), ENVs, and modulation
+                        _randomize_mod(lfo1_p, lfo2_p, envl_p, envh_p,
+                                       mod_cbs, pspecs)
+
+                    elif rnd_pattern_btn.collidepoint(event.pos):
+                        # Pick a random pattern, randomize its params + LUT
+                        new_pat_name = random.choice(pattern_names)
+                        current_index = pattern_names.index(new_pat_name)
+                        module = patterns[new_pat_name]
+                        pspecs = module.PARAMS
+                        params = {k: v["default"] for k, v in pspecs.items()}
+                        # Randomize slider params
+                        for k, spec in pspecs.items():
+                            if k in ("COLORMAP", "SPRITE"):
+                                continue
+                            if isinstance(spec, dict) and "options" in spec:
+                                continue
+                            if isinstance(spec, dict):
+                                if "valid" in spec:
+                                    params[k] = random.choice(spec["valid"])
+                                else:
+                                    mn = spec.get("min", spec["default"] / 2)
+                                    mx = spec.get("max", spec["default"] * 2)
+                                    st = spec.get("step", 0.1)
+                                    params[k] = round(random.uniform(mn, mx) / st) * st
+                        # Randomize LUT, keep current sprite
+                        new_cmap = random.choice(cmap_names)
+                        params["COLORMAP"] = new_cmap
+                        params["SPRITE"] = sprite_dd.selected
+                        cmap_dd.selected = new_cmap
+                        pat_dd.selected = new_pat_name
+                        for meta in pspecs.values():
+                            if isinstance(meta, dict) and meta.get("modulatable"):
+                                meta["mod_active"] = False
+                                meta["mod_source"] = None
+                        sliders, dropdowns, mod_cbs = create_sliders(pspecs, params)
+                        pattern = module.Pattern(WALL_W, WALL_H, params=params)
+                        # Randomize LFOs (Q mode only), ENVs, and modulation
+                        _randomize_mod(lfo1_p, lfo2_p, envl_p, envh_p,
+                                       mod_cbs, pspecs)
+
             # ── PATCH tab events ────────────────────────────────────────
             elif active_tab == 2 and event.type == pygame.MOUSEBUTTONDOWN:
-                if save_btn.collidepoint(event.pos):
+                # Solid colour buttons
+                _solid_hit = False
+                for _slbl, _scol, _srect in solid_btns:
+                    if _srect.collidepoint(event.pos):
+                        solid_override = _scol
+                        _solid_hit = True
+                        break
+                if _solid_hit:
+                    pass
+                elif save_btn.collidepoint(event.pos):
                     save_mode = not save_mode
                     clear_mode = False
                 elif del_btn.collidepoint(event.pos):
@@ -981,35 +1184,46 @@ def launch_ui(wall=None):
                     current_bank += 1
                     reload_patch_grid(patterns, sprites, patch_icons, patches_arr)
                 else:
-                    for i, sr in enumerate(patch_rects):
-                        if sr.collidepoint(event.pos):
-                            if save_mode:
-                                lc = {"lfo1": lfo1_p.config.copy(), "lfo2": lfo2_p.config.copy()}
-                                ec = {"envl": envl_p.config.copy(), "envh": envh_p.config.copy()}
-                                save_patch(current_bank, i, pattern_names[current_index],
-                                           params, pattern.param_meta, lc, ec)
-                                if frame:
-                                    th = pygame.Surface((pattern.width, pattern.height))
-                                    draw_simulator(th, frame, pattern.width, pattern.height,
-                                                   pygame.Rect(0, 0, pattern.width, pattern.height))
-                                    patch_icons[i] = pygame.transform.smoothscale(
-                                        th, (SLOT_SIZE, SLOT_SIZE))
-                                patches_arr[i] = True
-                                save_mode = False
-                            elif clear_mode:
-                                delete_patch(current_bank, i)
-                                patches_arr[i] = None
-                                patch_icons[i] = None
-                                clear_mode = False
-                            else:
-                                if patches_arr[i]:
-                                    (current_index, pattern, sliders,
-                                     dropdowns, mod_cbs) = restore_patch(
-                                        current_bank, i, pattern_names, patterns,
-                                        [lfo1_p, lfo2_p], [envl_p, envh_p],
-                                        pat_dd, cmap_dd, sprite_dd, create_sliders)
-                                    params = pattern.params.copy()
+                    # Beat-count buttons
+                    _beat_hit = False
+                    for bval, brect in beat_btns:
+                        if brect.collidepoint(event.pos):
+                            cycle_beats = bval
+                            _beat_hit = True
                             break
+                    if _beat_hit:
+                        pass
+                    else:
+                        for i, sr in enumerate(patch_rects):
+                            if sr.collidepoint(event.pos):
+                                if save_mode:
+                                    lc = {"lfo1": lfo1_p.config.copy(), "lfo2": lfo2_p.config.copy()}
+                                    ec = {"envl": envl_p.config.copy(), "envh": envh_p.config.copy()}
+                                    save_patch(current_bank, i, pattern_names[current_index],
+                                               params, pattern.param_meta, lc, ec)
+                                    if frame:
+                                        th = pygame.Surface((pattern.width, pattern.height))
+                                        draw_simulator(th, frame, pattern.width, pattern.height,
+                                                       pygame.Rect(0, 0, pattern.width, pattern.height))
+                                        patch_icons[i] = pygame.transform.smoothscale(
+                                            th, (SLOT_SIZE, SLOT_SIZE))
+                                    patches_arr[i] = True
+                                    save_mode = False
+                                elif clear_mode:
+                                    delete_patch(current_bank, i)
+                                    patches_arr[i] = None
+                                    patch_icons[i] = None
+                                    clear_mode = False
+                                else:
+                                    if patches_arr[i]:
+                                        (current_index, pattern, sliders,
+                                         dropdowns, mod_cbs) = restore_patch(
+                                            current_bank, i, pattern_names, patterns,
+                                            [lfo1_p, lfo2_p], [envl_p, envh_p],
+                                            pat_dd, cmap_dd, sprite_dd, create_sliders)
+                                        params = pattern.params.copy()
+                                        solid_override = None
+                                break
 
             # ── CONFIG tab events ───────────────────────────────────────
             elif active_tab == 3:
@@ -1032,12 +1246,6 @@ def launch_ui(wall=None):
                             bright_slider, width_dd, height_dd, mic_sensitivity,
                             protocol_dd, _cfg))
                         running = False
-                    else:
-                        # Beat-count buttons
-                        for bval, brect in beat_btns:
-                            if brect.collidepoint(event.pos):
-                                cycle_beats = bval
-                                break
                     width_dd.handle_event(event)
                     height_dd.handle_event(event)
                     protocol_dd.handle_event(event)
@@ -1114,6 +1322,10 @@ def launch_ui(wall=None):
                             if 0 <= idx < len(frame):
                                 frame[idx] = (rgba.r, rgba.g, rgba.b, 0)
 
+        # ── solid colour override (replaces frame so preview also shows it)
+        if solid_override is not None:
+            frame = [solid_override + (0,)] * (WALL_W * WALL_H)
+
         # ── send to wall ────────────────────────────────────────────────
         if wall is not None:
             brightness = bright_slider.value
@@ -1162,6 +1374,16 @@ def launch_ui(wall=None):
                 ("envl", (255, 255, 100)), ("envh", (255, 150, 50))]):
                 draw_mod_indicator(screen, font, mod_signals, key, col,
                                    pygame.Rect(RX, ind_y + j * (ind_h + 3), ind_w, ind_h))
+
+            # Randomize buttons (centred above tab bar)
+            pygame.draw.rect(screen, (90, 140, 90), rnd_settings_btn, border_radius=4)
+            _rs_lbl = sm_font.render("RND Settings", True, (255, 255, 255))
+            screen.blit(_rs_lbl, (rnd_settings_btn.x + (rnd_settings_btn.width - _rs_lbl.get_width()) // 2,
+                                  rnd_settings_btn.y + (rnd_settings_btn.height - _rs_lbl.get_height()) // 2))
+            pygame.draw.rect(screen, (140, 90, 140), rnd_pattern_btn, border_radius=4)
+            _rp_lbl = sm_font.render("RND Pattern", True, (255, 255, 255))
+            screen.blit(_rp_lbl, (rnd_pattern_btn.x + (rnd_pattern_btn.width - _rp_lbl.get_width()) // 2,
+                                  rnd_pattern_btn.y + (rnd_pattern_btn.height - _rp_lbl.get_height()) // 2))
 
             # Layer 3: param dropdowns (closed first)
             for d in dropdowns:
@@ -1257,10 +1479,7 @@ def launch_ui(wall=None):
             screen.blit(mode_lbl, (rnd_mode_btn.x + (rnd_mode_btn.width - mode_lbl.get_width()) // 2,
                                    rnd_mode_btn.y + (rnd_mode_btn.height - mode_lbl.get_height()) // 2))
 
-        elif active_tab == 3:
-            # ── CONFIG ──────────────────────────────────────────────────
-            # Beat-count button row
-            screen.blit(sm_font.render("Beats:", True, (180, 180, 180)), (30, beat_btn_y - 1))
+            # Beat-count buttons (2 rows of 3, below bank nav)
             for bval, brect in beat_btns:
                 sel = (bval == cycle_beats)
                 bc = (80, 80, 180) if sel else (70, 70, 70)
@@ -1270,6 +1489,18 @@ def launch_ui(wall=None):
                 bl = sm_font.render(str(bval), True, (255, 255, 255))
                 screen.blit(bl, (brect.x + (brect.width - bl.get_width()) // 2,
                                  brect.y + (brect.height - bl.get_height()) // 2))
+
+            # Solid colour buttons (3×3 grid below preview)
+            for _slbl, _scol, _srect in solid_btns:
+                pygame.draw.rect(screen, _scol, _srect)
+                pygame.draw.rect(screen, (180, 180, 180) if solid_override == _scol else (80, 80, 80), _srect, 2)
+                if _scol == (0, 0, 0):  # label "K" on black so it's visible
+                    kl = sm_font.render(_slbl, True, (160, 160, 160))
+                    screen.blit(kl, (_srect.x + (_srect.width - kl.get_width()) // 2,
+                                     _srect.y + (_srect.height - kl.get_height()) // 2))
+
+        elif active_tab == 3:
+            # ── CONFIG ──────────────────────────────────────────────────
 
             # auto-BPM sync button
             sc = (100, 255, 100) if auto_bpm else (90, 90, 90)

@@ -1,0 +1,69 @@
+{
+  "pattern": "rings",
+  "params": {
+    "RING_SPACING": 0.22,
+    "EXPANSION_SPEED": 2.35,
+    "RING_THICKNESS": 0.44,
+    "COLOR_SHIFT": 0.64,
+    "COLORMAP": "warm_rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "RING_SPACING": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "EXPANSION_SPEED": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "RING_THICKNESS": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    },
+    "COLOR_SHIFT": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.91,
+      "offset": -0.35,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.1,
+      "offset": 0.82,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 11,
+      "gain_db": -32,
+      "attack": 0.001,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -1,
+      "gain_db": -14,
+      "attack": 0.001,
+      "release": 0.05,
+      "mode": "up"
+    }
+  }
+}
