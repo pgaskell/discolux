@@ -1,10 +1,11 @@
 matrix_width: 40
-matrix_height: 12
+matrix_height: 16
 wled_host: 10.0.0.2
 wled_timeout: 0.5
-led_protocol: DRGB
+led_protocol: E1.31
+wiring_mode: PANEL_SERPENTINE
 frame_rate: 30
-cycle_beats: 32
-auto_bpm: false
-brightness: 0.52
-mic_sensitivity: 0.98
+cycle_beats: 8
+auto_bpm: true
+brightness: 0.27
+mic_sensitivity: 0.22

@@ -111,8 +111,12 @@ class Wall:
             self._send_http_json(frame)
             return
 
-        # Remap row-major → column-major for all UDP protocols
-        remapped = self._row_to_col_major(frame)
+
+        # Remap based on mode
+        if hasattr(self, 'remap_mode') and self.remap_mode == 'PANEL_SERPENTINE':
+            remapped = self._row_to_panel_serpentine(frame)
+        else:
+            remapped = self._row_to_col_major(frame)
 
         if proto == "DRGB":
             self._send_drgb(remapped)
@@ -129,6 +133,30 @@ class Wall:
         else:
             # Fallback to DRGB
             self._send_drgb(remapped)
+    def set_remap_mode(self, mode: str):
+        """Set remapping mode: 'COLUMN_MAJOR' (default) or 'PANEL_SERPENTINE'"""
+        self.remap_mode = mode.upper()
+
+    def _row_to_panel_serpentine(self, frame: list[tuple]) -> list[tuple]:
+        """
+        Remap for 5 chained panels, each panel is row-major, each row within a panel is serpentine (reversed every other row), panels chained left-to-right.
+        Assumes width and height are divisible by 5.
+        """
+        w, h = self.width, self.height
+        num_panels = 5
+        panel_w = w // num_panels
+        panel_h = h
+        out = [None] * (w * h)
+        for p in range(num_panels):
+            for y in range(panel_h):
+                serp = (y % 2 == 1)
+                for x in range(panel_w):
+                    src_x = p * panel_w + (panel_w - 1 - x if serp else x)
+                    src_y = y
+                    src_idx = src_y * w + src_x
+                    dst_idx = p * panel_w * panel_h + y * panel_w + x
+                    out[dst_idx] = frame[src_idx] if src_idx < len(frame) else (0, 0, 0)
+        return out
 
     def clear(self) -> None:
         """Send an all-black frame."""
@@ -220,9 +248,12 @@ class Wall:
     # ────────────────────────────────────────────────────────────────────
     def _send_dnrgb(self, frame: list[tuple]) -> None:
         timeout = 2
-        max_px_per_pkt = 489  # (1470 - 4 header) / 3
-        for chunk_start in range(0, len(frame), max_px_per_pkt):
-            chunk = frame[chunk_start:chunk_start + max_px_per_pkt]
+        max_px_per_pkt = 128
+        total_px = len(frame)
+        chunk_start = 0
+        while chunk_start < total_px:
+            chunk_end = min(chunk_start + max_px_per_pkt, total_px)
+            chunk = frame[chunk_start:chunk_end]
             buf = bytearray([
                 _PROTO_DNRGB,
                 timeout,
@@ -234,15 +265,23 @@ class Wall:
                 buf.append(px[1] & 0xFF)
                 buf.append(px[2] & 0xFF)
             self._udp_send(buf, WLED_UDP_PORT)
+            chunk_start += len(chunk)
 
     # ────────────────────────────────────────────────────────────────────
     #  E1.31 (sACN)  –  UDP port 5568
     #  170 RGB pixels per universe, multi-universe
     # ────────────────────────────────────────────────────────────────────
     def _send_e131(self, frame: list[tuple]) -> None:
+        # Determine if frame is RGB or RGBW
+        if frame and len(frame[0]) == 4:
+            channels_per_pixel = 4
+        else:
+            channels_per_pixel = 3
         flat = []
         for px in frame:
             flat.extend([px[0] & 0xFF, px[1] & 0xFF, px[2] & 0xFF])
+            if channels_per_pixel == 4:
+                flat.append(px[3] & 0xFF)
 
         total_channels = len(flat)
         universe = 1

@@ -67,7 +67,7 @@ CONFIG_FILE = "discolux_settings.yaml"
 
 def _gather_settings(cycle_beats, auto_bpm,
                      bright_slider, width_dd, height_dd, mic_sensitivity,
-                     protocol_dd, _cfg):
+                     protocol_dd, wiring_dd, _cfg):
     """Collect all CONFIG-tab values into a dict for saving."""
     return {
         "matrix_width": int(width_dd.selected),
@@ -75,6 +75,7 @@ def _gather_settings(cycle_beats, auto_bpm,
         "wled_host": _cfg.WLED_HOST,
         "wled_timeout": _cfg.WLED_TIMEOUT,
         "led_protocol": protocol_dd.selected,
+        "wiring_mode": wiring_dd.selected,
         "frame_rate": _cfg.FRAME_RATE,
         "cycle_beats": cycle_beats,
         "auto_bpm": auto_bpm,
@@ -949,6 +950,10 @@ def launch_ui(wall=None):
     WALL_W = _cfg.MATRIX_WIDTH
     WALL_H = _cfg.MATRIX_HEIGHT
 
+    # Ensure wall remap_mode is set at startup
+    if wall is not None and hasattr(wall, 'set_remap_mode'):
+        wall.set_remap_mode(saved_cfg.get("wiring_mode", "COLUMN_MAJOR"))
+
     last_cycle_time = time.time()
 
     # SYNC button + large BPM readout to its right
@@ -968,10 +973,17 @@ def launch_ui(wall=None):
     height_dd = Dropdown("Height", dim_options, str(_cfg.MATRIX_HEIGHT),
                          430, 55, width=80, show_label=True, max_visible=12)
 
+
     # Protocol selector
     protocol_dd = Dropdown("Protocol", PROTOCOL_CHOICES,
                            saved_cfg.get("led_protocol", "DRGB"),
                            430, 100, width=120, show_label=True, max_visible=7)
+
+    # Wiring/remap mode selector
+    WIRING_CHOICES = ["COLUMN_MAJOR", "PANEL_SERPENTINE"]
+    wiring_dd = Dropdown("Wiring", WIRING_CHOICES,
+                        saved_cfg.get("wiring_mode", "COLUMN_MAJOR"),
+                        430, 190, width=160, show_label=True, max_visible=4)
 
     # Display mode selector (simulator rendering style)
     SIM_MODES = ["Fill", "Grid", "Point"]
@@ -1056,7 +1068,7 @@ def launch_ui(wall=None):
                             save_yaml(_gather_settings(
                                 cycle_beats, auto_bpm,
                                 bright_slider, width_dd, height_dd, mic_sensitivity,
-                                protocol_dd, _cfg))
+                                protocol_dd, wiring_dd, _cfg))
                         active_tab = ti
                         # reset save/clear modes when leaving PATCH
                         if ti != 2:
@@ -1238,23 +1250,27 @@ def launch_ui(wall=None):
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
                             bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, _cfg))
+                            protocol_dd, wiring_dd, _cfg))
                     elif quit_btn.collidepoint(event.pos):
                         # Save settings before quitting
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
                             bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, _cfg))
+                            protocol_dd, wiring_dd, _cfg))
                         running = False
                     width_dd.handle_event(event)
                     height_dd.handle_event(event)
                     protocol_dd.handle_event(event)
+                    wiring_dd.handle_event(event)
                     sim_mode_dd.handle_event(event)
                     # apply display mode change
                     sim_mode = sim_mode_dd.selected
                     # apply protocol change to wall
                     if wall is not None and wall.protocol != protocol_dd.selected.upper().replace(" ", ""):
                         wall.protocol = protocol_dd.selected
+                    # apply wiring/remap mode change to wall
+                    if wall is not None and hasattr(wall, 'set_remap_mode'):
+                        wall.set_remap_mode(wiring_dd.selected)
                     # apply dimension changes
                     new_w = int(width_dd.selected)
                     new_h = int(height_dd.selected)
@@ -1542,8 +1558,12 @@ def launch_ui(wall=None):
             width_dd.draw(screen, font)
             height_dd.draw(screen, font)
 
+
             # protocol selector
             protocol_dd.draw(screen, font)
+
+            # wiring/remap mode selector
+            wiring_dd.draw(screen, font)
 
             # display mode selector
             sim_mode_dd.draw(screen, font)

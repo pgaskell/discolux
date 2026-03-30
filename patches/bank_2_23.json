@@ -1,0 +1,69 @@
+{
+  "pattern": "life",
+  "params": {
+    "UPDATE_RATE": 9.5,
+    "DENSITY": 0.16,
+    "BIRTH_RATE": 0.1,
+    "DEATH_RATE": 0.04,
+    "COLORMAP": "red_blue",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "UPDATE_RATE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "DENSITY": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    },
+    "BIRTH_RATE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "DEATH_RATE": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 0.15,
+      "offset": 0.71,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.77,
+      "offset": 0.2,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.25,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -5,
+      "gain_db": -21,
+      "attack": 0.005,
+      "release": 0.15,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": -29,
+      "gain_db": -20,
+      "attack": 0.005,
+      "release": 0.15,
+      "mode": "down"
+    }
+  }
+}
