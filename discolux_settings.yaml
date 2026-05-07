@@ -1,6 +1,5 @@
 matrix_width: 48
 matrix_height: 32
-num_panels: 5
 wled_host: 10.0.0.2
 wled_timeout: 0.5
 led_protocol: E1.31

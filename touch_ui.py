@@ -24,7 +24,7 @@ import colorsys
 from os.path import isfile
 from PIL import Image
 
-from config import MATRIX_WIDTH, MATRIX_HEIGHT, NUM_PANELS, FRAME_RATE, save_yaml
+from config import MATRIX_WIDTH, MATRIX_HEIGHT, FRAME_RATE, save_yaml
 from lfo import evaluate_lfos, LFO_CONFIG
 from audio_env import evaluate_env, ENV_CONFIG, get_input_level
 from wall import PROTOCOL_CHOICES
@@ -66,13 +66,12 @@ CONFIG_FILE = "discolux_settings.yaml"
 
 
 def _gather_settings(cycle_beats, auto_bpm,
-                     bright_slider, width_dd, height_dd, panels_dd, mic_sensitivity,
+                     bright_slider, width_dd, height_dd, mic_sensitivity,
                      protocol_dd, wiring_dd, _cfg):
     """Collect all CONFIG-tab values into a dict for saving."""
     return {
         "matrix_width": int(width_dd.selected),
         "matrix_height": int(height_dd.selected),
-        "num_panels": int(panels_dd.selected),
         "wled_host": _cfg.WLED_HOST,
         "wled_timeout": _cfg.WLED_TIMEOUT,
         "led_protocol": protocol_dd.selected,
@@ -951,12 +950,11 @@ def launch_ui(wall=None):
     WALL_W = _cfg.MATRIX_WIDTH
     WALL_H = _cfg.MATRIX_HEIGHT
 
-    # Ensure wall remap_mode and dimensions are set at startup
-    if wall is not None:
-        wall.set_dimensions(WALL_W, WALL_H)
-        wall.num_serpentine_panels = saved_cfg.get("num_panels", NUM_PANELS)
-        if hasattr(wall, 'set_remap_mode'):
-            wall.set_remap_mode(saved_cfg.get("wiring_mode", "COLUMN_MAJOR"))
+    # Ensure wall remap_mode is set at startup
+    if wall is not None and hasattr(wall, 'set_remap_mode'):
+        wall.set_remap_mode(saved_cfg.get("wiring_mode", "COLUMN_MAJOR"))
+
+    last_cycle_time = time.time()
 
     # SYNC button + large BPM readout to its right
     sync_btn = pygame.Rect(30, 20, 120, 40)
@@ -974,10 +972,7 @@ def launch_ui(wall=None):
                         430, 20, width=80, show_label=True, max_visible=12)
     height_dd = Dropdown("Height", dim_options, str(_cfg.MATRIX_HEIGHT),
                          430, 55, width=80, show_label=True, max_visible=12)
-    panels_options = [str(i) for i in range(1, 17)]
-    panels_dd = Dropdown("Panels", panels_options,
-                         str(saved_cfg.get("num_panels", NUM_PANELS)),
-                         530, 20, width=70, show_label=True, max_visible=8)
+
 
     # Protocol selector
     protocol_dd = Dropdown("Protocol", PROTOCOL_CHOICES,
@@ -1072,7 +1067,7 @@ def launch_ui(wall=None):
                         if active_tab == 3 and ti != 3:
                             save_yaml(_gather_settings(
                                 cycle_beats, auto_bpm,
-                                bright_slider, width_dd, height_dd, panels_dd, mic_sensitivity,
+                                bright_slider, width_dd, height_dd, mic_sensitivity,
                                 protocol_dd, wiring_dd, _cfg))
                         active_tab = ti
                         # reset save/clear modes when leaving PATCH
@@ -1254,19 +1249,17 @@ def launch_ui(wall=None):
                     elif save_cfg_btn.collidepoint(event.pos):
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
-                            bright_slider, width_dd, height_dd, panels_dd, mic_sensitivity,
+                            bright_slider, width_dd, height_dd, mic_sensitivity,
                             protocol_dd, wiring_dd, _cfg))
                     elif quit_btn.collidepoint(event.pos):
                         # Save settings before quitting
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
-                            bright_slider, width_dd, height_dd, panels_dd, mic_sensitivity,
+                            bright_slider, width_dd, height_dd, mic_sensitivity,
                             protocol_dd, wiring_dd, _cfg))
                         running = False
                     width_dd.handle_event(event)
                     height_dd.handle_event(event)
-                    if wiring_dd.selected == "PANEL_SERPENTINE":
-                        panels_dd.handle_event(event)
                     protocol_dd.handle_event(event)
                     wiring_dd.handle_event(event)
                     sim_mode_dd.handle_event(event)
@@ -1278,10 +1271,6 @@ def launch_ui(wall=None):
                     # apply wiring/remap mode change to wall
                     if wall is not None and hasattr(wall, 'set_remap_mode'):
                         wall.set_remap_mode(wiring_dd.selected)
-                    # apply num_panels change
-                    new_panels = int(panels_dd.selected)
-                    if wall is not None and wall.num_serpentine_panels != new_panels:
-                        wall.num_serpentine_panels = new_panels
                     # apply dimension changes
                     new_w = int(width_dd.selected)
                     new_h = int(height_dd.selected)
@@ -1290,8 +1279,6 @@ def launch_ui(wall=None):
                         _cfg.MATRIX_HEIGHT = new_h
                         WALL_W = new_w
                         WALL_H = new_h
-                        if wall is not None:
-                            wall.set_dimensions(new_w, new_h)
                         try:
                             pattern = module.Pattern(WALL_W, WALL_H, params=params)
                         except Exception as e:
@@ -1570,9 +1557,6 @@ def launch_ui(wall=None):
             # matrix dimensions
             width_dd.draw(screen, font)
             height_dd.draw(screen, font)
-            # panels count – only relevant in PANEL_SERPENTINE mode
-            if wiring_dd.selected == "PANEL_SERPENTINE":
-                panels_dd.draw(screen, font)
 
 
             # protocol selector
@@ -1601,12 +1585,8 @@ def launch_ui(wall=None):
                 width_dd.draw(screen, font)
             if height_dd.open:
                 height_dd.draw(screen, font)
-            if wiring_dd.selected == "PANEL_SERPENTINE" and panels_dd.open:
-                panels_dd.draw(screen, font)
             if protocol_dd.open:
                 protocol_dd.draw(screen, font)
-            if wiring_dd.open:
-                wiring_dd.draw(screen, font)
             if sim_mode_dd.open:
                 sim_mode_dd.draw(screen, font)
 
