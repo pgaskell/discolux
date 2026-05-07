@@ -1,0 +1,69 @@
+{
+  "pattern": "hyperspace",
+  "params": {
+    "STAR_COUNT": 72,
+    "SPEED": 1.7,
+    "TRAIL": 0.8200000000000001,
+    "COLOR_CYCLE": 0.38,
+    "COLORMAP": "jet",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "STAR_COUNT": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "TRAIL": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "saw",
+      "depth": 0.32,
+      "offset": 0.24,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 2.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "saw",
+      "depth": 0.32,
+      "offset": -0.05,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 10,
+      "gain_db": -7,
+      "attack": 0.01,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -7,
+      "gain_db": -20,
+      "attack": 0.01,
+      "release": 0.15,
+      "mode": "down"
+    }
+  }
+}

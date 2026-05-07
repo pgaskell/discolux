@@ -1,0 +1,64 @@
+{
+  "pattern": "spectral_ring",
+  "params": {
+    "BINS": 24,
+    "ROTATION_SPEED": 0.75,
+    "RADIUS_SCALE": 0.8,
+    "COLOR_SHIFT_SPEED": 0.1,
+    "COLORMAP": "green_blue",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "ROTATION_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "RADIUS_SCALE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "scale"
+    },
+    "COLOR_SHIFT_SPEED": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.12,
+      "offset": -0.94,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.5,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.58,
+      "offset": 0.45,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 4.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -18,
+      "gain_db": -2,
+      "attack": 0.001,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": -2,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "updown"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "pattern": "tunnel_zoom",
+  "params": {
+    "ZOOM_SPEED": 0.8300000000000001,
+    "SPACING": 1.0,
+    "COLOR_CYCLE": 0.18,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "ZOOM_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SPACING": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.95,
+      "offset": 0.7,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 4.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "triangle",
+      "depth": 0.28,
+      "offset": 0.68,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -10,
+      "gain_db": -9,
+      "attack": 0.001,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -40,
+      "gain_db": -14,
+      "attack": 0.02,
+      "release": 0.05,
+      "mode": "down"
+    }
+  }
+}

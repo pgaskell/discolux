@@ -980,7 +980,7 @@ def launch_ui(wall=None):
                            430, 100, width=120, show_label=True, max_visible=7)
 
     # Wiring/remap mode selector
-    WIRING_CHOICES = ["COLUMN_MAJOR", "PANEL_SERPENTINE"]
+    WIRING_CHOICES = ["COLUMN_MAJOR", "PANEL_SERPENTINE", "THREE_PANEL_COL_MAJOR"]
     wiring_dd = Dropdown("Wiring", WIRING_CHOICES,
                         saved_cfg.get("wiring_mode", "COLUMN_MAJOR"),
                         430, 190, width=160, show_label=True, max_visible=4)

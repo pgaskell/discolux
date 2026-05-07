@@ -113,8 +113,11 @@ class Wall:
 
 
         # Remap based on mode
-        if hasattr(self, 'remap_mode') and self.remap_mode == 'PANEL_SERPENTINE':
+        rm = getattr(self, 'remap_mode', 'COLUMN_MAJOR')
+        if rm == 'PANEL_SERPENTINE':
             remapped = self._row_to_panel_serpentine(frame)
+        elif rm == 'THREE_PANEL_COL_MAJOR':
+            remapped = self._row_to_three_panel_col_major(frame)
         else:
             remapped = self._row_to_col_major(frame)
 
@@ -134,8 +137,40 @@ class Wall:
             # Fallback to DRGB
             self._send_drgb(remapped)
     def set_remap_mode(self, mode: str):
-        """Set remapping mode: 'COLUMN_MAJOR' (default) or 'PANEL_SERPENTINE'"""
+        """Set remapping mode: 'COLUMN_MAJOR', 'PANEL_SERPENTINE', or 'THREE_PANEL_COL_MAJOR'"""
         self.remap_mode = mode.upper()
+
+    def _row_to_three_panel_col_major(self, frame: list[tuple]) -> list[tuple]:
+        """
+        Remap for 3 independent column-serpentine panels side by side.
+
+        Input:  row-major 48×32 frame (width=48, height=32)
+        Output: three 16×32 sections concatenated, each remapped to
+                column-serpentine order starting at the bottom-left:
+                  • Even columns (0, 2, …): bottom → top  (row H-1 … row 0)
+                  • Odd  columns (1, 3, …): top → bottom  (row 0 … row H-1)
+
+        This matches Govee LED Wall wiring:
+          • 3 data channels, one per 16×32 curtain
+          • Strip enters at the bottom-left of each curtain and snakes up/down
+            each column
+        """
+        w, h = self.width, self.height
+        num_panels = 3
+        panel_w = w // num_panels   # 16
+        out = []
+        for p in range(num_panels):
+            x0 = p * panel_w
+            for col in range(panel_w):
+                # Physical column is h+2 (34) LEDs: dead at each end.
+                # Serpentine: even cols bottom→top, odd cols top→bottom.
+                out.append((0, 0, 0))  # dead pixel at physical start
+                rows = range(h - 1, -1, -1) if col % 2 == 0 else range(h)
+                for row in rows:
+                    src = row * w + x0 + col
+                    out.append(frame[src] if src < len(frame) else (0, 0, 0))
+                out.append((0, 0, 0))  # dead pixel at physical end
+        return out
 
     def _row_to_panel_serpentine(self, frame: list[tuple]) -> list[tuple]:
         """
@@ -272,24 +307,25 @@ class Wall:
     #  170 RGB pixels per universe, multi-universe
     # ────────────────────────────────────────────────────────────────────
     def _send_e131(self, frame: list[tuple]) -> None:
-        # Determine if frame is RGB or RGBW
-        if frame and len(frame[0]) == 4:
-            channels_per_pixel = 4
-        else:
-            channels_per_pixel = 3
+        # Always send RGB (3 channels/pixel); W channel is dropped.
+        # DiscoLux frames are always 4-tuples with W=0, so we must not use
+        # len(frame[0]) to decide — that would always pick RGBW and cause
+        # WLED (in RGB mode) to misinterpret every W=0 byte as a colour channel.
         flat = []
         for px in frame:
             flat.extend([px[0] & 0xFF, px[1] & 0xFF, px[2] & 0xFF])
-            if channels_per_pixel == 4:
-                flat.append(px[3] & 0xFF)
 
+        # IMPORTANT: advance by 510 bytes (170 pixels × 3) per universe — the
+        # true DMX universe capacity for RGB.  Using 512 causes a 512 mod 3 = 2
+        # byte drift per universe, which shifts R/G/B channels and produces the
+        # wrong colour on every subsequent universe.
+        CHANNELS_PER_UNIVERSE = 510  # 170 pixels × 3 channels
         total_channels = len(flat)
         universe = 1
         offset = 0
         while offset < total_channels:
-            chunk = flat[offset:offset + 512]
-            channels_in_pkt = len(chunk)
-            if channels_in_pkt == 0:
+            chunk = flat[offset:offset + CHANNELS_PER_UNIVERSE]
+            if not chunk:
                 break
 
             self._e131_seq = (self._e131_seq % 255) + 1
@@ -297,7 +333,7 @@ class Wall:
             self._udp_send(pkt, E131_PORT)
 
             universe += 1
-            offset += 512
+            offset += CHANNELS_PER_UNIVERSE
 
     def _build_e131_packet(self, universe: int, channel_data: list[int],
                            sequence: int) -> bytes:

@@ -1,0 +1,69 @@
+{
+  "pattern": "Caleido3",
+  "params": {
+    "SPEED": 0.98,
+    "SYMMETRY": 12,
+    "TWIST": 0.5,
+    "COLOR_CYCLE": 0.0,
+    "COLORMAP": "cool",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SYMMETRY": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "TWIST": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.51,
+      "offset": -0.59,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.17,
+      "offset": 0.1,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 1.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -19,
+      "gain_db": -35,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": 15,
+      "gain_db": -26,
+      "attack": 0.02,
+      "release": 0.05,
+      "mode": "down"
+    }
+  }
+}

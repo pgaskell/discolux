@@ -1,0 +1,69 @@
+{
+  "pattern": "beating_hearts",
+  "params": {
+    "HEART_COUNT": 3,
+    "BEAT_SPEED": 1.0,
+    "SIZE": 0.25,
+    "COLOR_CYCLE": 0.15,
+    "COLORMAP": "rainbow",
+    "SPRITE": "houseforall"
+  },
+  "modulation": {
+    "HEART_COUNT": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "BEAT_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.12,
+      "offset": -0.94,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.5,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.58,
+      "offset": 0.45,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 4.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -18,
+      "gain_db": -2,
+      "attack": 0.001,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -10,
+      "gain_db": -2,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "updown"
+    }
+  }
+}
