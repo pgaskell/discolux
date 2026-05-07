@@ -16,6 +16,7 @@ _DEFAULTS = {
     # Matrix
     "matrix_width": 24,
     "matrix_height": 24,
+    "num_panels": 5,
 
     # WLED
     "wled_host": "10.0.0.2",
@@ -57,6 +58,7 @@ _cfg = _load_yaml()
 # ─── Public module-level attributes (used by other modules) ────────────────
 MATRIX_WIDTH = _cfg["matrix_width"]
 MATRIX_HEIGHT = _cfg["matrix_height"]
+NUM_PANELS = _cfg["num_panels"]
 
 WLED_HOST = _cfg["wled_host"]
 WLED_TIMEOUT = _cfg["wled_timeout"]

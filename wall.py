@@ -21,7 +21,7 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError
 
 from config import (
-    MATRIX_WIDTH, MATRIX_HEIGHT,
+    MATRIX_WIDTH, MATRIX_HEIGHT, NUM_PANELS,
     WLED_HOST, WLED_TIMEOUT,
     LED_PROTOCOL,
 )
@@ -56,11 +56,13 @@ class Wall:
     """Abstraction for pushing frames to a WLED controller."""
 
     def __init__(self, width: int = MATRIX_WIDTH, height: int = MATRIX_HEIGHT,
-                 protocol: str = LED_PROTOCOL, host: str = WLED_HOST):
+                 protocol: str = LED_PROTOCOL, host: str = WLED_HOST,
+                 num_serpentine_panels: int = NUM_PANELS):
         self.width = width
         self.height = height
         self.num_pixels = width * height
         self.host = host
+        self.num_serpentine_panels = num_serpentine_panels
         self._protocol = protocol.upper().replace(" ", "")
 
         # Reusable UDP socket (non-blocking sends)
@@ -174,11 +176,12 @@ class Wall:
 
     def _row_to_panel_serpentine(self, frame: list[tuple]) -> list[tuple]:
         """
-        Remap for 5 chained panels, each panel is row-major, each row within a panel is serpentine (reversed every other row), panels chained left-to-right.
-        Assumes width and height are divisible by 5.
+        Remap for N chained panels, each panel is row-major, each row within a
+        panel is serpentine (reversed every other row), panels chained left-to-right.
+        num_serpentine_panels must divide width evenly.
         """
         w, h = self.width, self.height
-        num_panels = 5
+        num_panels = self.num_serpentine_panels
         panel_w = w // num_panels
         panel_h = h
         out = [None] * (w * h)
