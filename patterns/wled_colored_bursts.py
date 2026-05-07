@@ -14,12 +14,12 @@ PARAMS = {
         "modulatable": True, "mod_mode": "add"
     },
     "BLUR": {
-        "default": 4, "min": 0, "max": 20, "step": 1,
-        "modulatable": False, "mod_mode": "add"
+        "default": 5, "min": 0, "max": 100, "step": 5,
+        "modulatable": True, "mod_mode": "add"
     },
     "NUM_LINES": {
         "default": 8, "min": 2, "max": 20, "step": 1,
-        "modulatable": False, "mod_mode": "add"
+        "modulatable": True, "mod_mode": "add"
     },
     "COLORMAP": {
         "default": "warm_rainbow", "options": list(COLORMAPS.keys())
@@ -42,8 +42,20 @@ class Pattern(BasePattern):
         self._last = now
 
         speed     = self.params["SPEED"]
-        blur      = int(self.params["BLUR"])
-        num_lines = max(2, min(20, int(self.params["NUM_LINES"])))
+        blur      = self.params["BLUR"]
+        num_lines = self.params["NUM_LINES"]
+
+        for key, local in (("SPEED", "speed"), ("BLUR", "blur"), ("NUM_LINES", "num_lines")):
+            meta = self.param_meta[key]
+            if meta.get("modulatable") and meta.get("mod_active"):
+                amt = (lfo_signals or {}).get(meta.get("mod_source"), 0.0)
+                v = apply_modulation(self.params[key], meta, amt)
+                if key == "SPEED":     speed     = v
+                elif key == "BLUR":    blur      = v
+                elif key == "NUM_LINES": num_lines = v
+
+        blur      = int(blur)
+        num_lines = max(2, min(20, int(num_lines)))
         cmap      = COLORMAPS.get(self.params["COLORMAP"], list(COLORMAPS.values())[0])
 
         self.t    += dt * speed

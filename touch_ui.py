@@ -17,6 +17,7 @@ entry point (``discolux.py``).
 import pygame
 import random
 import time
+import gc
 import importlib
 import os
 import json
@@ -264,29 +265,28 @@ def restore_patch(bank, index, pattern_names, patterns, lfo_panels, env_panels,
             if cb.param_name == nm:
                 cb.active = (cb.source_id == m["mod_source"])
     import lfo
-    lfo.LFO_CONFIG.update(patch["lfo_config"])
     for ln, panel in zip(("lfo1", "lfo2"), lfo_panels):
-        c = lfo.LFO_CONFIG[ln]
-        panel.config.update(c)
+        c = patch["lfo_config"].get(ln, {})
+        lfo.LFO_CONFIG[ln].update(c)          # keep existing dict object, just refresh values
+        panel.config = lfo.LFO_CONFIG[ln]     # re-establish shared reference
         panel.waveform_dropdown.selected = c["waveform"]
         panel.depth_slider.value = c["depth"]
         panel.offset_slider.value = c.get("offset", 0.0)
-        panel.config["offset"] = c.get("offset", 0.0)
         panel.sync_mode = c["sync_mode"]
         if c["sync_mode"] == "free":
             panel.mhz_dropdown.selected = str(int(c["hz"] * 1000))
         else:
             panel.beat_dropdown.selected = panel._bl(c["period_beats"])
     import audio_env
-    audio_env.ENV_CONFIG.update(patch["env_config"])
     for en, panel in zip(("envl", "envh"), env_panels):
-        c = audio_env.ENV_CONFIG[en]
+        c = patch["env_config"].get(en, {})
+        audio_env.ENV_CONFIG[en].update(c)    # keep existing dict object, just refresh values
+        panel.config = audio_env.ENV_CONFIG[en]  # re-establish shared reference
         panel.th_slider.value = c["threshold_db"]
         panel.gn_slider.value = c["gain_db"]
         panel.atk_dd.selected = panel.attack_map[c["attack"]]
         panel.rel_dd.selected = panel.release_map[c["release"]]
         panel.mode_dd.selected = c["mode"]
-        panel.config.update(c)
     pat_dd.selected = patch["pattern"]
     if "COLORMAP" in params:
         cmap_dd.selected = params["COLORMAP"]
@@ -1011,6 +1011,7 @@ def launch_ui(wall=None):
     clock = pygame.time.Clock()
     running = True
     frame = None
+    last_cycle_time = time.time()  # start cycle timer after all init is done
 
     # ════════════════════════════════════════════════════════════════════
     while running:
@@ -1045,6 +1046,7 @@ def launch_ui(wall=None):
                         if bk != old_bank:
                             reload_patch_grid(patterns, sprites,
                                               patch_icons, patches_arr)
+                        gc.collect()  # reclaim old pattern/slider objects now, not mid-frame
                     except Exception as e:
                         print(f"[ui] Random switch failed: {e}")
 
