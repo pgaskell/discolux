@@ -881,7 +881,7 @@ def launch_ui(wall=None):
     # Buttons on the right – vertically centered in content area
     BTN_X = GRID_X + GRID_TOTAL_W + 15
     BTN_W = SCREEN_W - BTN_X - 10
-    # Total height of right-side controls block:
+    # Total height of right-side controls block (beat indicator excluded – placed below):
     #   save(36) + 4 + del(36) + 4 + tap(50) + 6 + rnd row(32) + 6
     #   + bank row(32) + 6 + beat row1(28) + 3 + beat row2(28)
     _rblock_h = 36 + 4 + 36 + 4 + 50 + 6 + 32 + 6 + 32 + 6 + 28 + 3 + 28
@@ -912,6 +912,10 @@ def launch_ui(wall=None):
         bx = BTN_X + col * (_beat_bw + 3)
         by = _beat_row_y + row * (_beat_bh + 3)
         beat_btns.append((val, pygame.Rect(bx, by, _beat_bw, _beat_bh)))
+
+    # 4-light beat indicator – 20 px below the bottom of the beat-count buttons
+    _beat_btns_bottom = _beat_row_y + _beat_bh + (_beat_bh + 3)  # 2 rows
+    beat_ind_rect = pygame.Rect(BTN_X, _beat_btns_bottom + 20, BTN_W, 18)
 
     # ── Solid colour buttons (3×3 grid, below preview on PATCH tab) ────
     SOLID_COLORS = [
@@ -1185,7 +1189,7 @@ def launch_ui(wall=None):
                         ivs = [b - a for a, b in zip(tap_times, tap_times[1:])]
                         avg = sum(ivs) / len(ivs)
                         if avg > 0:
-                            _lfo.BPM = 60.0 / avg
+                            _lfo.BPM = round(60.0 / avg / 0.05) * 0.05
                 elif rnd_btn.collidepoint(event.pos):
                     random_cycle = not random_cycle
                     last_cycle_time = time.time()
@@ -1441,6 +1445,17 @@ def launch_ui(wall=None):
                 bc = (200, 80, 80) if (save_mode or clear_mode) else (100, 100, 100)
                 pygame.draw.rect(screen, bc, sr, 2)
 
+            # beat indicator – 4 lights showing position in bar
+            _bi_beat = int((time.time() - last_cycle_time) * (_lfo.BPM / 60.0)) % 4
+            _bi_r = beat_ind_rect.height // 2 - 1
+            _bi_spacing = beat_ind_rect.width // 4
+            for _bi_i in range(4):
+                _bi_cx = beat_ind_rect.x + _bi_spacing * _bi_i + _bi_spacing // 2
+                _bi_cy = beat_ind_rect.centery
+                _bi_col = (80, 220, 80) if _bi_i == _bi_beat else (50, 50, 50)
+                pygame.draw.circle(screen, _bi_col, (_bi_cx, _bi_cy), _bi_r)
+                pygame.draw.circle(screen, (100, 100, 100), (_bi_cx, _bi_cy), _bi_r, 1)
+
             # save / delete buttons
             pygame.draw.rect(screen, (200, 80, 80) if save_mode else (80, 180, 80), save_btn)
             stxt = "SAVE" if not save_mode else "TAP SLOT"
@@ -1458,7 +1473,7 @@ def launch_ui(wall=None):
             tl = bold_font.render("TAP", True, (255, 255, 255))
             screen.blit(tl, (tap_btn.x + (tap_btn.width - tl.get_width()) // 2,
                              tap_btn.y + 8))
-            bpm_txt = f"{int(_lfo.BPM)} BPM"
+            bpm_txt = f"{_lfo.BPM:.1f} BPM"
             bl = bold_font.render(bpm_txt, True, (127, 255, 0))
             screen.blit(bl, (tap_btn.x + (tap_btn.width - bl.get_width()) // 2,
                              tap_btn.y + 32))
@@ -1530,7 +1545,7 @@ def launch_ui(wall=None):
             # BPM readout (large, to the right of SYNC, same height)
             pygame.draw.rect(screen, (40, 40, 40), bpm_display_rect, border_radius=4)
             bpm_font = pygame.font.SysFont("monospace", 28, bold=True)
-            bpm_surf = bpm_font.render(f"{int(_lfo.BPM)}", True, (127, 255, 0))
+            bpm_surf = bpm_font.render(f"{_lfo.BPM:.1f}", True, (127, 255, 0))
             screen.blit(bpm_surf, (bpm_display_rect.x + (bpm_display_rect.width - bpm_surf.get_width()) // 2,
                                    bpm_display_rect.y + (bpm_display_rect.height - bpm_surf.get_height()) // 2))
             bpm_lbl = sm_font.render("BPM", True, (160, 160, 160))

@@ -309,8 +309,18 @@ def detect_bpm(min_bpm: float = 60, max_bpm: float = 200) -> float | None:
     candidates = []
     heights = props.get("peak_heights", region[peaks])
     for pk, ht in zip(peaks, heights):
-        lag = pk + min_lag
-        raw = 60.0 * block_rate / lag
+        # Parabolic interpolation for sub-block fractional lag.
+        # Fits a parabola through (pk-1, pk, pk+1) in the ACF window.
+        # delta = 0.5*(y[k+1]-y[k-1]) / (2*y[k] - y[k-1] - y[k+1])
+        if 0 < pk < len(region) - 1:
+            y0, y1, y2 = region[pk - 1], region[pk], region[pk + 1]
+            denom = 2.0 * y1 - y0 - y2
+            delta = 0.5 * (y2 - y0) / denom if abs(denom) > 1e-10 else 0.0
+            delta = max(-0.5, min(0.5, delta))  # clamp to ±½ sample
+        else:
+            delta = 0.0
+        frac_lag = (pk + delta) + min_lag
+        raw = 60.0 * block_rate / frac_lag
         corrected = _octave_correct(raw)
         # Score: autocorrelation height + bonus if in preferred range
         bonus = 0.05 if _BPM_PREFER_LO <= corrected <= _BPM_PREFER_HI else 0.0
@@ -318,7 +328,7 @@ def detect_bpm(min_bpm: float = 60, max_bpm: float = 200) -> float | None:
 
     # Pick the highest-scoring candidate
     candidates.sort(key=lambda c: c[1], reverse=True)
-    raw_bpm = round(candidates[0][0], 1)
+    raw_bpm = candidates[0][0]   # full float precision from parabolic interp
 
     # Median filter: accumulate estimates, take median
     _bpm_estimates.append(raw_bpm)
@@ -329,6 +339,6 @@ def detect_bpm(min_bpm: float = 60, max_bpm: float = 200) -> float | None:
 
     # Hysteresis: only publish if change exceeds threshold
     if _stable_bpm is None or abs(median_bpm - _stable_bpm) > _BPM_HYSTERESIS:
-        _stable_bpm = round(median_bpm, 1)
+        _stable_bpm = round(median_bpm, 1)  # display resolution: 0.1 BPM
 
     return _stable_bpm
