@@ -1,0 +1,53 @@
+{
+  "pattern": "wled_drift_rose",
+  "params": {
+    "SPEED": 2.6,
+    "BLUR": 20,
+    "PETALS": 2,
+    "COLORMAP": "jet",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.63,
+      "offset": -0.4,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.5,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.64,
+      "offset": 0.9,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 4.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 11,
+      "gain_db": -29,
+      "attack": 0.005,
+      "release": 0.025,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": 14,
+      "gain_db": 4,
+      "attack": 0.01,
+      "release": 0.025,
+      "mode": "updown"
+    }
+  }
+}
