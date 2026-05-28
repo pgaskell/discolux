@@ -68,7 +68,8 @@ CONFIG_FILE = "discolux_settings.yaml"
 
 def _gather_settings(cycle_beats, auto_bpm,
                      bright_slider, width_dd, height_dd, mic_sensitivity,
-                     protocol_dd, wiring_dd, _cfg):
+                     protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                     sprites_dd, _cfg):
     """Collect all CONFIG-tab values into a dict for saving."""
     return {
         "matrix_width": int(width_dd.selected),
@@ -82,6 +83,9 @@ def _gather_settings(cycle_beats, auto_bpm,
         "auto_bpm": auto_bpm,
         "brightness": round(bright_slider.value, 2),
         "mic_sensitivity": round(mic_sensitivity, 2),
+        "orientation": orientation_dd.selected,
+        "display_mode": sim_mode_dd.selected,
+        "render_sprites": sprites_dd.selected == "Yes",
     }
 
 
@@ -89,6 +93,50 @@ def _load_settings() -> dict:
     """Load CONFIG-tab settings from YAML, or return defaults."""
     from config import _cfg as loaded
     return dict(loaded)
+
+
+ORIENTATION_CHOICES = ["normal", "rot180", "flip_vert", "flip_horiz"]
+DOWNSCALE_CHOICES = ["1x", "2x", "3x", "4x"]
+
+
+def _logical_dims(wall_w: int, wall_h: int, scale: int) -> tuple:
+    """Return (logical_w, logical_h): pixels the pattern renders at for this scale."""
+    return max(1, wall_w // scale), max(1, wall_h // scale)
+
+
+def _expand_frame(lframe: list, log_w: int, log_h: int,
+                  phys_w: int, phys_h: int, scale: int) -> list:
+    """Upscale a logical frame to physical size.
+    Each logical pixel becomes a scale×scale block.
+    Physical pixels outside the covered area are black.
+    """
+    BLACK = (0, 0, 0, 0)
+    out = [BLACK] * (phys_w * phys_h)
+    for ly in range(log_h):
+        for lx in range(log_w):
+            px = lframe[ly * log_w + lx]
+            for dy in range(scale):
+                py = ly * scale + dy
+                if py >= phys_h:
+                    break
+                for dx in range(scale):
+                    px2 = lx * scale + dx
+                    if px2 >= phys_w:
+                        break
+                    out[py * phys_w + px2] = px
+    return out
+
+
+def _apply_orientation(frame: list, w: int, h: int, mode: str) -> list:
+    """Return a new frame list with the requested orientation applied."""
+    rows = [frame[r * w:(r + 1) * w] for r in range(h)]
+    if mode == "rot180":
+        rows = [list(reversed(row)) for row in reversed(rows)]
+    elif mode == "flip_vert":
+        rows = list(reversed(rows))
+    elif mode == "flip_horiz":
+        rows = [list(reversed(row)) for row in rows]
+    return [px for row in rows for px in row]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -836,13 +884,17 @@ def launch_ui(wall=None):
     sprite_dd = Dropdown("SPRITE", sprite_names,
                          params.get("SPRITE", "none"),
                          378, 4, width=168, show_label=False, max_visible=15)
+    # Per-patch downscale control (in EDIT tab, top row)
+    downscale_dd = Dropdown("Downscale", DOWNSCALE_CHOICES,
+                            params.get("downscale", "1x"),
+                            556, 4, width=70, show_label=False, max_visible=4)
 
     # ── EDIT-tab mod panels (right column, stacked) ─────────────────────
     RX = SCREEN_W - 205  # right column x
-    lfo1_p = LFOPanel("lfo1", RX, 40, LFO_CONFIG["lfo1"])
-    lfo2_p = LFOPanel("lfo2", RX, 130, LFO_CONFIG["lfo2"])
-    envl_p = EnvPanel("envl", RX, 220, ENV_CONFIG["envl"])
-    envh_p = EnvPanel("envh", RX, 310, ENV_CONFIG["envh"])
+    lfo1_p = LFOPanel("lfo1", RX, 45, LFO_CONFIG["lfo1"])
+    lfo2_p = LFOPanel("lfo2", RX, 135, LFO_CONFIG["lfo2"])
+    envl_p = EnvPanel("envl", RX, 225, ENV_CONFIG["envl"])
+    envh_p = EnvPanel("envh", RX, 315, ENV_CONFIG["envh"])
     mod_panels = [lfo1_p, lfo2_p, envl_p, envh_p]
 
     # ── EDIT-tab randomize buttons (centred above tab bar) ──────────────
@@ -958,6 +1010,8 @@ def launch_ui(wall=None):
     if wall is not None and hasattr(wall, 'set_remap_mode'):
         wall.set_remap_mode(saved_cfg.get("wiring_mode", "COLUMN_MAJOR"))
 
+    orientation = saved_cfg.get("orientation", "normal")
+
     last_cycle_time = time.time()
 
     # SYNC button + large BPM readout to its right
@@ -967,33 +1021,48 @@ def launch_ui(wall=None):
     bright_slider = HSlider("brightness", brightness, 0.0, 1.0, 0.01, 30, 90, 200)
 
     # Mic sensitivity slider + level meter
-    mic_slider = HSlider("mic_sens", mic_sensitivity, 0.1, 3.0, 0.01, 30, 180, 200)
-    mic_level_rect = pygame.Rect(30, 210, 200, 12)
+    # Level meter sits above the slider; label sits below
+    mic_level_rect = pygame.Rect(30, 120, 200, 12)
+    mic_slider = HSlider("mic_sens", mic_sensitivity, 0.1, 3.0, 0.01, 30, 140, 200)
 
-    # Matrix dimension controls
-    dim_options = [str(i) for i in range(4, 65)]
-    width_dd = Dropdown("Width", dim_options, str(_cfg.MATRIX_WIDTH),
-                        430, 20, width=80, show_label=True, max_visible=12)
-    height_dd = Dropdown("Height", dim_options, str(_cfg.MATRIX_HEIGHT),
-                         430, 55, width=80, show_label=True, max_visible=12)
+    # Right-column dropdowns — equally spaced, order: Display, Protocol, Wiring, Width, Height, Orientation, Sprites
+    # Available vertical space: 0–330 (save button at 330). 7 items × 24px + 8 gaps × ~19px = 319px.
+    _RDD_X = 430
+    _RDD_Y = [15, 57, 99, 141, 183, 225, 267]   # Display, Protocol, Wiring, Width, Height, Orientation, Sprites
 
+    # Display mode selector (simulator rendering style) — saved in YAML
+    SIM_MODES = ["Fill", "Grid", "Point"]
+    sim_mode = saved_cfg.get("display_mode", "Fill")
+    sim_mode_dd = Dropdown("Display", SIM_MODES, sim_mode,
+                           _RDD_X, _RDD_Y[0], width=120, show_label=True, max_visible=3)
 
     # Protocol selector
     protocol_dd = Dropdown("Protocol", PROTOCOL_CHOICES,
                            saved_cfg.get("led_protocol", "DRGB"),
-                           430, 100, width=120, show_label=True, max_visible=7)
+                           _RDD_X, _RDD_Y[1], width=120, show_label=True, max_visible=7)
 
     # Wiring/remap mode selector
     WIRING_CHOICES = ["COLUMN_MAJOR", "PANEL_SERPENTINE", "THREE_PANEL_COL_MAJOR"]
     wiring_dd = Dropdown("Wiring", WIRING_CHOICES,
-                        saved_cfg.get("wiring_mode", "COLUMN_MAJOR"),
-                        430, 190, width=160, show_label=True, max_visible=4)
+                         saved_cfg.get("wiring_mode", "COLUMN_MAJOR"),
+                         _RDD_X, _RDD_Y[2], width=180, show_label=True, max_visible=4)
 
-    # Display mode selector (simulator rendering style)
-    SIM_MODES = ["Fill", "Grid", "Point"]
-    sim_mode = "Fill"
-    sim_mode_dd = Dropdown("Display", SIM_MODES, sim_mode,
-                           430, 145, width=120, show_label=True, max_visible=3)
+    # Matrix dimension controls
+    dim_options = [str(i) for i in range(4, 65)]
+    width_dd = Dropdown("Width", dim_options, str(_cfg.MATRIX_WIDTH),
+                        _RDD_X, _RDD_Y[3], width=80, show_label=True, max_visible=12)
+    height_dd = Dropdown("Height", dim_options, str(_cfg.MATRIX_HEIGHT),
+                         _RDD_X, _RDD_Y[4], width=80, show_label=True, max_visible=12)
+
+    # Orientation selector
+    orientation_dd = Dropdown("Orientation", ORIENTATION_CHOICES,
+                              saved_cfg.get("orientation", "normal"),
+                              _RDD_X, _RDD_Y[5], width=140, show_label=True, max_visible=4)
+
+    # Render sprites toggle
+    _sprites_default = "Yes" if saved_cfg.get("render_sprites", True) else "No"
+    sprites_dd = Dropdown("Sprites", ["Yes", "No"], _sprites_default,
+                          _RDD_X, _RDD_Y[6], width=80, show_label=True, max_visible=2)
 
     # Quit button (bottom-right of CONFIG tab content area)
     quit_btn = pygame.Rect(SCREEN_W - 140, CONTENT_H - 50, 120, 40)
@@ -1046,6 +1115,7 @@ def launch_ui(wall=None):
                             [lfo1_p, lfo2_p], [envl_p, envh_p],
                             pat_dd, cmap_dd, sprite_dd, create_sliders)
                         params = pattern.params.copy()
+                        downscale_dd.selected = params.get("downscale", "1x")
                         # Only rebuild grid if we switched banks
                         if bk != old_bank:
                             reload_patch_grid(patterns, sprites,
@@ -1074,7 +1144,8 @@ def launch_ui(wall=None):
                             save_yaml(_gather_settings(
                                 cycle_beats, auto_bpm,
                                 bright_slider, width_dd, height_dd, mic_sensitivity,
-                                protocol_dd, wiring_dd, _cfg))
+                                protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                                sprites_dd, _cfg))
                         active_tab = ti
                         # reset save/clear modes when leaving PATCH
                         if ti != 2:
@@ -1106,6 +1177,7 @@ def launch_ui(wall=None):
                     pat_dd.handle_event(event)
                     cmap_dd.handle_event(event)
                     sprite_dd.handle_event(event)
+                    downscale_dd.handle_event(event)
 
                     # ── Randomize buttons ───────────────────────────────
                     if rnd_settings_btn.collidepoint(event.pos):
@@ -1240,6 +1312,7 @@ def launch_ui(wall=None):
                                             [lfo1_p, lfo2_p], [envl_p, envh_p],
                                             pat_dd, cmap_dd, sprite_dd, create_sliders)
                                         params = pattern.params.copy()
+                                        downscale_dd.selected = params.get("downscale", "1x")
                                         solid_override = None
                                 break
 
@@ -1256,20 +1329,24 @@ def launch_ui(wall=None):
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
                             bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, wiring_dd, _cfg))
+                            protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                            sprites_dd, _cfg))
                     elif quit_btn.collidepoint(event.pos):
                         # Save settings before quitting
                         save_yaml(_gather_settings(
                             cycle_beats, auto_bpm,
                             bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, wiring_dd, _cfg))
+                            protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                            sprites_dd, _cfg))
                         running = False
                     width_dd.handle_event(event)
                     height_dd.handle_event(event)
                     protocol_dd.handle_event(event)
                     wiring_dd.handle_event(event)
+                    orientation_dd.handle_event(event)
                     sim_mode_dd.handle_event(event)
-                    # apply display mode change
+                    sprites_dd.handle_event(event)
+
                     sim_mode = sim_mode_dd.selected
                     # apply protocol change to wall
                     if wall is not None and wall.protocol != protocol_dd.selected.upper().replace(" ", ""):
@@ -1314,6 +1391,7 @@ def launch_ui(wall=None):
 
         params["COLORMAP"] = cmap_dd.selected
         params["SPRITE"] = sprite_dd.selected
+        params["downscale"] = downscale_dd.selected
         pattern.update_params(params)
 
         # ── evaluate mod sources & render ───────────────────────────────
@@ -1326,9 +1404,19 @@ def launch_ui(wall=None):
             print(f"[ui] Render failed: {e}")
             frame = [(0, 0, 0, 0)] * (WALL_W * WALL_H)
 
+        # ── big-pixel downscale effect (subsample then expand) ────────────────
+        _cur_scale = int(params.get("downscale", "1x")[0])
+        if _cur_scale > 1:
+            _log_w, _log_h = _logical_dims(WALL_W, WALL_H, _cur_scale)
+            _small = [
+                frame[(ly * _cur_scale) * WALL_W + (lx * _cur_scale)]
+                for ly in range(_log_h) for lx in range(_log_w)
+            ]
+            frame = _expand_frame(_small, _log_w, _log_h, WALL_W, WALL_H, _cur_scale)
+
         # ── sprite overlay ──────────────────────────────────────────────
         sn = params.get("SPRITE", "none")
-        if sn in sprites and sprites[sn]:
+        if sprites_dd.selected == "Yes" and sn in sprites and sprites[sn]:
             sframes = sprites[sn]
             beat = (pygame.time.get_ticks() / 1000.0) * (_lfo.BPM / 60.0)
             sf = sframes[int(beat) % len(sframes)]
@@ -1347,6 +1435,11 @@ def launch_ui(wall=None):
         # ── solid colour override (replaces frame so preview also shows it)
         if solid_override is not None:
             frame = [solid_override + (0,)] * (WALL_W * WALL_H)
+
+        # ── orientation transform ────────────────────────────────────────
+        _orient = orientation_dd.selected
+        if _orient != "normal":
+            frame = _apply_orientation(frame, WALL_W, WALL_H, _orient)
 
         # ── send to wall ────────────────────────────────────────────────
         if wall is not None:
@@ -1414,8 +1507,7 @@ def launch_ui(wall=None):
             pat_dd.draw(screen, font)
             cmap_dd.draw(screen, font)
             sprite_dd.draw(screen, font)
-
-            # Layer 4 (topmost): any open dropdowns drawn last
+            downscale_dd.draw(screen, font)
             for p in mod_panels:
                 p.draw_open_dropdowns(screen, font)
             for d in dropdowns:
@@ -1427,6 +1519,8 @@ def launch_ui(wall=None):
                 cmap_dd.draw(screen, font)
             if sprite_dd.open:
                 sprite_dd.draw(screen, font)
+            if downscale_dd.open:
+                downscale_dd.draw(screen, font)
 
         elif active_tab == 1:
             # ── VIEW ────────────────────────────────────────────────────
@@ -1546,23 +1640,18 @@ def launch_ui(wall=None):
             pygame.draw.rect(screen, (40, 40, 40), bpm_display_rect, border_radius=4)
             bpm_font = pygame.font.SysFont("monospace", 28, bold=True)
             bpm_surf = bpm_font.render(f"{_lfo.BPM:.1f}", True, (127, 255, 0))
-            screen.blit(bpm_surf, (bpm_display_rect.x + (bpm_display_rect.width - bpm_surf.get_width()) // 2,
+            screen.blit(bpm_surf, (bpm_display_rect.x + 6,
                                    bpm_display_rect.y + (bpm_display_rect.height - bpm_surf.get_height()) // 2))
             bpm_lbl = sm_font.render("BPM", True, (160, 160, 160))
             screen.blit(bpm_lbl, (bpm_display_rect.right - bpm_lbl.get_width() - 4,
-                                  bpm_display_rect.y + 2))
+                                  bpm_display_rect.bottom - bpm_lbl.get_height() - 3))
 
             # brightness
-            screen.blit(font.render(f"Brightness: {bright_slider.value:.0%}",
-                                    True, (200, 200, 200)), (30, 102))
             bright_slider.draw(screen, font)
+            screen.blit(font.render(f"Brightness: {bright_slider.value:.0%}",
+                                    True, (200, 200, 200)), (30, 107))
 
-            # Mic sensitivity slider
-            screen.blit(font.render(f"Mic Sensitivity: {mic_slider.value:.2f}",
-                                    True, (200, 200, 200)), (30, 195))
-            mic_slider.draw(screen, font)
-
-            # Mic level meter (post-sensitivity)
+            # Mic level meter (above slider)
             level = get_input_level(mic_sensitivity)
             pygame.draw.rect(screen, (50, 50, 50), mic_level_rect)
             bar_w = int(level * mic_level_rect.width)
@@ -1571,19 +1660,19 @@ def launch_ui(wall=None):
                 pygame.draw.rect(screen, col,
                                  pygame.Rect(mic_level_rect.x, mic_level_rect.y, bar_w, mic_level_rect.height))
 
-            # matrix dimensions
+            # Mic sensitivity slider + label below
+            mic_slider.draw(screen, font)
+            screen.blit(font.render(f"Mic Sensitivity: {mic_slider.value:.2f}",
+                                    True, (200, 200, 200)), (30, 162))
+
+            # Right column: Display, Protocol, Wiring, Width, Height, Orientation, Sprites
+            sim_mode_dd.draw(screen, font)
+            protocol_dd.draw(screen, font)
+            wiring_dd.draw(screen, font)
             width_dd.draw(screen, font)
             height_dd.draw(screen, font)
-
-
-            # protocol selector
-            protocol_dd.draw(screen, font)
-
-            # wiring/remap mode selector
-            wiring_dd.draw(screen, font)
-
-            # display mode selector
-            sim_mode_dd.draw(screen, font)
+            orientation_dd.draw(screen, font)
+            sprites_dd.draw(screen, font)
 
             # quit button
             pygame.draw.rect(screen, (180, 50, 50), quit_btn)
@@ -1597,15 +1686,11 @@ def launch_ui(wall=None):
             screen.blit(sl, (save_cfg_btn.x + (save_cfg_btn.width - sl.get_width()) // 2,
                              save_cfg_btn.y + (save_cfg_btn.height - sl.get_height()) // 2))
 
-            # config-tab: open dropdowns on top
-            if width_dd.open:
-                width_dd.draw(screen, font)
-            if height_dd.open:
-                height_dd.draw(screen, font)
-            if protocol_dd.open:
-                protocol_dd.draw(screen, font)
-            if sim_mode_dd.open:
-                sim_mode_dd.draw(screen, font)
+            # config-tab: open dropdowns on top (drawn last to overlay other elements)
+            for _dd in (sim_mode_dd, protocol_dd, wiring_dd, width_dd, height_dd,
+                        orientation_dd, sprites_dd):
+                if _dd.open:
+                    _dd.draw(screen, font)
 
         # ── Tab bar ─────────────────────────────────────────────────────
         for i, tr in enumerate(tab_rects):

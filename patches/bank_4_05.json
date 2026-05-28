@@ -1,0 +1,63 @@
+{
+  "pattern": "wled_plasma_ball",
+  "params": {
+    "SPEED": 3.0,
+    "FADE": 54,
+    "BLUR": 14,
+    "COLORMAP": "cyber_shift",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "FADE": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "BLUR": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.62,
+      "offset": -0.39,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 4.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.87,
+      "offset": -0.98,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.25,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -1,
+      "gain_db": -7,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": -6,
+      "gain_db": -40,
+      "attack": 0.005,
+      "release": 0.05,
+      "mode": "down"
+    }
+  }
+}

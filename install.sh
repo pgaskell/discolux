@@ -14,6 +14,7 @@
 #   6. Configures boot cmdline & config.txt for clean silent boot
 #   7. Makes the launcher script executable
 #   8. Rebuilds initramfs with the new Plymouth theme
+#   9. Sets eth0 to a static IP (10.0.0.1/24) for direct WLED connection
 #
 # Usage:
 #   cd /home/rpi/discolux_ctrl
@@ -49,7 +50,7 @@ echo ""
 # ═══════════════════════════════════════════════════════════════════════════
 # 1. System packages
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[1/8] Installing system packages..."
+echo "[1/9] Installing system packages..."
 apt-get update -qq
 apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
@@ -67,7 +68,7 @@ echo "  ✓ System packages installed"
 # ═══════════════════════════════════════════════════════════════════════════
 # 2. Python dependencies
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[2/8] Installing Python dependencies..."
+echo "[2/9] Installing Python dependencies..."
 sudo -u "${TARGET_USER}" pip3 install --break-system-packages --user \
     pygame numpy sounddevice Pillow PyYAML scipy
 
@@ -76,7 +77,7 @@ echo "  ✓ Python packages installed"
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. LightDM autologin
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[3/8] Configuring LightDM autologin..."
+echo "[3/9] Configuring LightDM autologin..."
 LIGHTDM_CONF="/etc/lightdm/lightdm.conf"
 
 # Ensure [Seat:*] section exists and has autologin settings
@@ -102,7 +103,7 @@ echo "  ✓ LightDM set to autologin as ${TARGET_USER} with labwc"
 # ═══════════════════════════════════════════════════════════════════════════
 # 4. labwc kiosk config (autostart + dark desktop)
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[4/8] Configuring labwc kiosk mode..."
+echo "[4/9] Configuring labwc kiosk mode..."
 
 LABWC_DIR="${TARGET_HOME}/.config/labwc"
 mkdir -p "$LABWC_DIR"
@@ -158,7 +159,7 @@ echo "  ✓ labwc configured for kiosk mode"
 # ═══════════════════════════════════════════════════════════════════════════
 # 5. Plymouth boot splash theme
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[5/8] Installing Plymouth splash theme..."
+echo "[5/9] Installing Plymouth splash theme..."
 
 THEME_DIR="/usr/share/plymouth/themes/discolux"
 mkdir -p "$THEME_DIR"
@@ -287,7 +288,7 @@ echo "  ✓ Plymouth theme installed"
 # ═══════════════════════════════════════════════════════════════════════════
 # 6. Boot configuration (silent boot, no Pi branding)
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[6/8] Configuring silent boot..."
+echo "[6/9] Configuring silent boot..."
 
 CMDLINE="/boot/firmware/cmdline.txt"
 if [[ -f "$CMDLINE" ]]; then
@@ -325,7 +326,7 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════
 # 7. Make launcher executable
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[7/8] Setting permissions..."
+echo "[7/9] Setting permissions..."
 
 chmod +x "${SCRIPT_DIR}/start_discolux.sh"
 chmod +x "${SCRIPT_DIR}/launch_remote.py" 2>/dev/null || true
@@ -340,10 +341,34 @@ echo "  ✓ Permissions set"
 # ═══════════════════════════════════════════════════════════════════════════
 # 8. Rebuild initramfs (includes Plymouth theme)
 # ═══════════════════════════════════════════════════════════════════════════
-echo "[8/8] Rebuilding initramfs (this may take a minute)..."
+echo "[8/9] Rebuilding initramfs (this may take a minute)..."
 update-initramfs -u -k all 2>&1 | tail -3
 
 echo "  ✓ initramfs rebuilt"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 9. Static IP on eth0 for direct WLED connection
+# ═══════════════════════════════════════════════════════════════════════════
+echo "[9/9] Configuring static IP on eth0 for WLED controller..."
+
+if command -v nmcli &>/dev/null; then
+    # Find the ethernet connection name (works even if renamed)
+    ETH_CON=$(nmcli -t -f NAME,TYPE connection show | awk -F: '$2=="ethernet"{print $1; exit}')
+    if [[ -n "$ETH_CON" ]]; then
+        nmcli connection modify "$ETH_CON" \
+            ipv4.method manual \
+            ipv4.addresses 10.0.0.1/24 \
+            ipv4.gateway "" \
+            ipv4.dns "" \
+            connection.autoconnect yes
+        nmcli connection up "$ETH_CON" 2>/dev/null || true
+        echo "  ✓ eth0 set to static 10.0.0.1/24 (WLED controller: 10.0.0.2)"
+    else
+        echo "  ⚠ No ethernet connection found in NetworkManager – skipping"
+    fi
+else
+    echo "  ⚠ nmcli not found – skipping static IP configuration"
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════
 echo ""

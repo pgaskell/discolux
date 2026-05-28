@@ -1,0 +1,57 @@
+{
+  "pattern": "wled_noise2d",
+  "params": {
+    "SPEED": 1.3,
+    "SCALE": 0.41000000000000003,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SCALE": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 0.61,
+      "offset": 0.55,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.56,
+      "offset": -0.28,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -13,
+      "gain_db": -3,
+      "attack": 0.01,
+      "release": 0.05,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": -6,
+      "gain_db": 1,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "updown"
+    }
+  }
+}

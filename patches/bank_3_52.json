@@ -1,0 +1,57 @@
+{
+  "pattern": "wled_frizzles",
+  "params": {
+    "X_FREQ": 1.35,
+    "Y_FREQ": 2.15,
+    "COLORMAP": "red_green",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "X_FREQ": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    },
+    "Y_FREQ": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "square",
+      "depth": 0.56,
+      "offset": -0.74,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 2.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.24,
+      "offset": -0.76,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 19,
+      "gain_db": -10,
+      "attack": 0.01,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -39,
+      "gain_db": -40,
+      "attack": 0.005,
+      "release": 0.15,
+      "mode": "down"
+    }
+  }
+}

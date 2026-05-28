@@ -5,7 +5,10 @@ wled_timeout: 0.5
 led_protocol: E1.31
 wiring_mode: THREE_PANEL_COL_MAJOR
 frame_rate: 30
-cycle_beats: 4
+cycle_beats: 16
 auto_bpm: true
-brightness: 0.36
-mic_sensitivity: 1.72
+brightness: 0.4
+mic_sensitivity: 0.2
+orientation: normal
+display_mode: Point
+render_sprites: true

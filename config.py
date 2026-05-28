@@ -30,6 +30,9 @@ _DEFAULTS = {
     "auto_bpm": False,
     "brightness": 1.0,
     "mic_sensitivity": 1.0,
+    "orientation": "normal",
+    "display_mode": "Fill",
+    "render_sprites": True,
 }
 
 

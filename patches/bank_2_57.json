@@ -1,0 +1,69 @@
+{
+  "pattern": "envelope",
+  "params": {
+    "SCROLL_SPEED": 2.3000000000000003,
+    "Y_SCALE": 0.53,
+    "THICKNESS": 2,
+    "COLOR_OFFSET": 0.27,
+    "COLORMAP": "jet",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SCROLL_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "Y_SCALE": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "scale"
+    },
+    "THICKNESS": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "COLOR_OFFSET": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 0.71,
+      "offset": -0.08,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.38,
+      "offset": -0.73,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -29,
+      "gain_db": -11,
+      "attack": 0.01,
+      "release": 0.025,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -34,
+      "gain_db": -17,
+      "attack": 0.01,
+      "release": 0.025,
+      "mode": "updown"
+    }
+  }
+}

@@ -1,44 +1,49 @@
 {
-  "pattern": "wled_funky_plank",
+  "pattern": "wavy_vert",
   "params": {
-    "SCROLL_SPEED": 0.8,
-    "NUM_BANDS": 3,
-    "AMPLITUDE": 0.9,
-    "SPEED": 2.6,
-    "COLORMAP": "ocean",
+    "STRIPES": 7,
+    "AMPLITUDE": 0.1,
+    "WAVE_SPEED": 0.06,
+    "COLOR_SHIFT": 0.033,
+    "COLORMAP": "jet",
     "SPRITE": "none"
   },
   "modulation": {
-    "SCROLL_SPEED": {
+    "STRIPES": {
       "mod_active": true,
       "mod_source": "envl",
       "mod_mode": "add"
     },
     "AMPLITUDE": {
-      "mod_active": true,
-      "mod_source": "lfo2",
-      "mod_mode": "add"
-    },
-    "SPEED": {
       "mod_active": false,
       "mod_source": null,
+      "mod_mode": "add"
+    },
+    "WAVE_SPEED": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "COLOR_SHIFT": {
+      "mod_active": true,
+      "mod_source": "lfo1",
       "mod_mode": "add"
     }
   },
   "lfo_config": {
     "lfo1": {
       "waveform": "sine",
-      "depth": 0.92,
-      "offset": 0.34,
+      "depth": 0.16,
+      "offset": 0.81,
       "sync_mode": "quantized",
       "hz": 0.5,
-      "period_beats": 4.0,
+      "period_beats": 1.0,
       "phase": 0.0
     },
     "lfo2": {
-      "waveform": "saw",
-      "depth": 0.19,
-      "offset": 0.08,
+      "waveform": "sine",
+      "depth": 0.75,
+      "offset": 0.33,
       "sync_mode": "quantized",
       "hz": 0.2,
       "period_beats": 2.0,
@@ -47,17 +52,17 @@
   },
   "env_config": {
     "envl": {
-      "threshold_db": -15,
+      "threshold_db": 18,
       "gain_db": -26,
-      "attack": 0.005,
-      "release": 0.025,
-      "mode": "up"
+      "attack": 0.02,
+      "release": 0.05,
+      "mode": "down"
     },
     "envh": {
       "threshold_db": -35,
-      "gain_db": -12,
+      "gain_db": -37,
       "attack": 0.01,
-      "release": 0.15,
+      "release": 0.1,
       "mode": "up"
     }
   }

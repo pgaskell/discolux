@@ -5,7 +5,7 @@
     "NUM_BANDS": 3,
     "AMPLITUDE": 0.9,
     "SPEED": 2.6,
-    "COLORMAP": "ocean",
+    "COLORMAP": "lava_art",
     "SPRITE": "none"
   },
   "modulation": {

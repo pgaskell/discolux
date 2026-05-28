@@ -1,0 +1,69 @@
+{
+  "pattern": "interference",
+  "params": {
+    "NUM_WAVES": 18,
+    "WAVE_SPEED": 0.13,
+    "SPATIAL_FREQ": 0.13,
+    "COLOR_CYCLE_SPEED": 0.184,
+    "COLORMAP": "lava_art",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "NUM_WAVES": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "WAVE_SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SPATIAL_FREQ": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE_SPEED": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "square",
+      "depth": 0.66,
+      "offset": 0.22,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 2.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.77,
+      "offset": -0.07,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 2,
+      "gain_db": 9,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": 9,
+      "gain_db": 3,
+      "attack": 0.01,
+      "release": 0.05,
+      "mode": "down"
+    }
+  }
+}

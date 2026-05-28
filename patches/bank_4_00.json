@@ -1,0 +1,69 @@
+{
+  "pattern": "infinite_squares",
+  "params": {
+    "SPEED": 1.1,
+    "THICKNESS": 1.4000000000000001,
+    "COLOR_CYCLE": 0.2,
+    "SPACING": 2.9000000000000004,
+    "COLORMAP": "neon_spectrum",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "THICKNESS": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "SPACING": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.16,
+      "offset": 0.72,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.82,
+      "offset": -0.32,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -30,
+      "gain_db": -40,
+      "attack": 0.02,
+      "release": 0.025,
+      "mode": "down"
+    },
+    "envh": {
+      "threshold_db": -21,
+      "gain_db": -35,
+      "attack": 0.01,
+      "release": 0.025,
+      "mode": "up"
+    }
+  }
+}

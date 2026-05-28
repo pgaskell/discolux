@@ -1,0 +1,69 @@
+{
+  "pattern": "Plasma_2",
+  "params": {
+    "SPEED": -0.6900000000000001,
+    "FREQUENCY": 5.2,
+    "AMPLITUDE": 0.30000000000000004,
+    "LUT_SHIFT": 0.11,
+    "COLORMAP": "red",
+    "SPRITE": "none"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "FREQUENCY": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "AMPLITUDE": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "scale"
+    },
+    "LUT_SHIFT": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "saw",
+      "depth": 0.55,
+      "offset": 0.94,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "square",
+      "depth": 0.8,
+      "offset": -0.63,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.25,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 14,
+      "gain_db": -32,
+      "attack": 0.001,
+      "release": 0.1,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": 1,
+      "gain_db": -17,
+      "attack": 0.01,
+      "release": 0.1,
+      "mode": "down"
+    }
+  }
+}

@@ -1,11 +1,11 @@
 {
   "pattern": "wled_funky_plank",
   "params": {
-    "SCROLL_SPEED": 0.8,
-    "NUM_BANDS": 3,
-    "AMPLITUDE": 0.9,
-    "SPEED": 2.6,
-    "COLORMAP": "ocean",
+    "SCROLL_SPEED": 1.5,
+    "NUM_BANDS": 16,
+    "AMPLITUDE": 0.8,
+    "SPEED": 2.45,
+    "COLORMAP": "green_blue",
     "SPRITE": "none"
   },
   "modulation": {
@@ -16,49 +16,49 @@
     },
     "AMPLITUDE": {
       "mod_active": true,
-      "mod_source": "lfo2",
+      "mod_source": "envl",
       "mod_mode": "add"
     },
     "SPEED": {
-      "mod_active": false,
-      "mod_source": null,
+      "mod_active": true,
+      "mod_source": "envl",
       "mod_mode": "add"
     }
   },
   "lfo_config": {
     "lfo1": {
       "waveform": "sine",
-      "depth": 0.92,
-      "offset": 0.34,
+      "depth": 0.5,
+      "offset": 0.84,
       "sync_mode": "quantized",
       "hz": 0.5,
-      "period_beats": 4.0,
+      "period_beats": 1.0,
       "phase": 0.0
     },
     "lfo2": {
       "waveform": "saw",
-      "depth": 0.19,
-      "offset": 0.08,
+      "depth": 0.94,
+      "offset": 0.57,
       "sync_mode": "quantized",
       "hz": 0.2,
-      "period_beats": 2.0,
+      "period_beats": 1.0,
       "phase": 0.0
     }
   },
   "env_config": {
     "envl": {
-      "threshold_db": -15,
-      "gain_db": -26,
-      "attack": 0.005,
-      "release": 0.025,
+      "threshold_db": -6,
+      "gain_db": -10,
+      "attack": 0.02,
+      "release": 0.15,
       "mode": "up"
     },
     "envh": {
-      "threshold_db": -35,
-      "gain_db": -12,
-      "attack": 0.01,
-      "release": 0.15,
-      "mode": "up"
+      "threshold_db": 15,
+      "gain_db": 7,
+      "attack": 0.005,
+      "release": 0.025,
+      "mode": "updown"
     }
   }
 }
