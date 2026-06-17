@@ -28,7 +28,7 @@ from PIL import Image
 from config import MATRIX_WIDTH, MATRIX_HEIGHT, FRAME_RATE, save_yaml
 from lfo import evaluate_lfos, LFO_CONFIG
 from audio_env import evaluate_env, ENV_CONFIG, get_input_level
-from wall import PROTOCOL_CHOICES
+from wall import PROTOCOL_CHOICES, MULTI_MODE_CHOICES, EXTEND_DIR_CHOICES
 
 # ─── Wall dimensions ───────────────────────────────────────────────────────
 WALL_W = MATRIX_WIDTH
@@ -66,27 +66,69 @@ instant_update = True
 CONFIG_FILE = "discolux_settings.yaml"
 
 
+def _safe_dim(val, default=24):
+    """Parse a dimension value to int, clamped to 4–128."""
+    try:
+        return max(4, min(128, int(str(val).strip() or str(default))))
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_pos(val, default=0):
+    """Parse a canvas-origin value to int, clamped to 0–2048."""
+    try:
+        return max(0, min(2048, int(str(val).strip() or str(default))))
+    except (ValueError, TypeError):
+        return default
+
+
 def _gather_settings(cycle_beats, auto_bpm,
                      bright_slider, width_dd, height_dd, mic_sensitivity,
                      protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
-                     sprites_dd, _cfg):
+                     sprites_dd, _cfg,
+                     multi_mode_dd=None, dev_inputs=None):
     """Collect all CONFIG-tab values into a dict for saving."""
-    return {
-        "matrix_width": int(width_dd.selected),
-        "matrix_height": int(height_dd.selected),
-        "wled_host": _cfg.WLED_HOST,
-        "wled_timeout": _cfg.WLED_TIMEOUT,
-        "led_protocol": protocol_dd.selected,
-        "wiring_mode": wiring_dd.selected,
-        "frame_rate": _cfg.FRAME_RATE,
-        "cycle_beats": cycle_beats,
-        "auto_bpm": auto_bpm,
-        "brightness": round(bright_slider.value, 2),
+    settings = {
+        "matrix_width":  _safe_dim(width_dd.selected),
+        "matrix_height": _safe_dim(height_dd.selected),
+        "wled_host":     _cfg.WLED_HOST,
+        "wled_timeout":  _cfg.WLED_TIMEOUT,
+        "led_protocol":  protocol_dd.selected,
+        "wiring_mode":   wiring_dd.selected,
+        "frame_rate":    _cfg.FRAME_RATE,
+        "cycle_beats":   cycle_beats,
+        "auto_bpm":      auto_bpm,
+        "brightness":    round(bright_slider.value, 2),
         "mic_sensitivity": round(mic_sensitivity, 2),
-        "orientation": orientation_dd.selected,
-        "display_mode": sim_mode_dd.selected,
+        "orientation":   orientation_dd.selected,
+        "display_mode":  sim_mode_dd.selected,
         "render_sprites": sprites_dd.selected == "Yes",
     }
+    if multi_mode_dd is not None:
+        settings["multi_wled_mode"] = multi_mode_dd.selected
+    if dev_inputs is not None:
+        settings["wled_devices"] = [
+            {
+                "host":        d["ip"].text,
+                "width":       _safe_dim(d["w"].selected),
+                "height":      _safe_dim(d["h"].selected),
+                "x":           _safe_pos(d["x"].selected),
+                "y":           _safe_pos(d["y"].selected),
+                "protocol":    d["proto"].selected,
+                "wiring_mode": d["wiring"].selected,
+                "active":      d["active"],
+            }
+            for d in dev_inputs
+        ]
+        # Keep legacy single-device keys in sync with device 0
+        if settings["wled_devices"]:
+            d0 = settings["wled_devices"][0]
+            settings["wled_host"]     = d0["host"]
+            settings["matrix_width"]  = d0["width"]
+            settings["matrix_height"] = d0["height"]
+            settings["led_protocol"]  = d0["protocol"]
+            settings["wiring_mode"]   = d0["wiring_mode"]
+    return settings
 
 
 def _load_settings() -> dict:
@@ -492,6 +534,9 @@ class ModCheckbox:
 
 
 class Dropdown:
+    # Height of the screen, used for auto-dropup detection
+    SCREEN_H = 480
+
     def __init__(self, name, options, default, x, y,
                  width=120, show_label=True, label_map=None,
                  dropup=False, max_visible=8):
@@ -502,25 +547,54 @@ class Dropdown:
         self.width = width
         self.show_label = show_label
         self.label_map = label_map or {}
+        self._force_dropup = dropup  # explicit override; None = auto
         self.dropup = dropup
         self.rect = pygame.Rect(x, y, width, 24)
         self.entry_h = 24
         self.open = False
         self.max_visible = max_visible
         self.start_index = 0
-        ar_off = self.entry_h
-        self.arrow_up_rect = pygame.Rect(
-            x, y - ar_off if dropup else y + ar_off * (max_visible + 1),
-            width, ar_off)
-        self.arrow_down_rect = pygame.Rect(
-            x, y - ar_off * (max_visible + 2) if dropup else y + ar_off * (max_visible + 2),
-            width, ar_off)
+        # Arrow rects are re-computed on open; initialise as zero-size
+        self.arrow_up_rect   = pygame.Rect(x, y, 0, 0)
+        self.arrow_down_rect = pygame.Rect(x, y, 0, 0)
+
+    def _recompute_arrow_rects(self):
+        """Recompute helper rects after dropup direction is decided.
+
+        For dropup: items occupy y-eh .. y-mv*eh (item 0 nearest button).
+          arrow_up   (lower index / ↑) just above topmost item: y-(mv+1)*eh
+          arrow_down (higher index / ↓) above that:             y-(mv+2)*eh
+        For dropdown: items occupy y+eh .. y+mv*eh.
+          arrow_up   (lower index / ↑) just below items:        y+(mv+1)*eh
+          arrow_down (higher index / ↓) below that:             y+(mv+2)*eh
+        """
+        eh = self.entry_h
+        mv = self.max_visible
+        x, y = self.x, self.y
+        if self.dropup:
+            self.arrow_up_rect   = pygame.Rect(x, y - eh * (mv + 1), self.width, eh)
+            self.arrow_down_rect = pygame.Rect(x, y - eh * (mv + 2), self.width, eh)
+        else:
+            self.arrow_up_rect   = pygame.Rect(x, y + eh * (mv + 1), self.width, eh)
+            self.arrow_down_rect = pygame.Rect(x, y + eh * (mv + 2), self.width, eh)
+
+    def _auto_dropup(self):
+        """Return True if the dropdown list would extend past the screen bottom."""
+        visible = min(self.max_visible, len(self.options))
+        # +2 for the two arrow rows below the item list in dropdown mode
+        bottom = self.y + (visible + 2) * self.entry_h
+        return bottom > self.SCREEN_H
 
     def handle_event(self, event):
         if event.type != pygame.MOUSEBUTTONDOWN:
             return False
         if self.rect.collidepoint(event.pos):
+            was_open = self.open
             self.open = not self.open
+            if self.open and not was_open:
+                # Decide direction when opening
+                self.dropup = self._force_dropup or self._auto_dropup()
+                self._recompute_arrow_rects()
             return True
         if not self.open:
             return False
@@ -583,6 +657,176 @@ class Dropdown:
                            self.arrow_up_rect.centery - up_t.get_height() // 2))
         screen.blit(dn_t, (self.arrow_down_rect.centerx - dn_t.get_width() // 2,
                            self.arrow_down_rect.centery - dn_t.get_height() // 2))
+
+
+# ─── Simple text input widget (for IP addresses) ──────────────────────────
+
+class TextInput:
+    """Single-line text input for short strings (e.g. IP addresses)."""
+    H = 24
+
+    def __init__(self, name, default, x, y, width=150):
+        self.name = name
+        self.text = str(default)
+        self.x, self.y = x, y
+        self.width = width
+        self.rect = pygame.Rect(x, y, width, self.H)
+        self.active = False
+
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            was = self.active
+            self.active = self.rect.collidepoint(event.pos)
+            return self.active != was
+        if event.type == pygame.KEYDOWN and self.active:
+            if event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                self.active = False
+            elif event.unicode and len(self.text) < 24:
+                self.text += event.unicode
+            return True
+        return False
+
+    def draw(self, screen, font) -> None:
+        col = (60, 100, 60) if self.active else (60, 60, 60)
+        pygame.draw.rect(screen, col, self.rect)
+        border_col = (180, 220, 180) if self.active else (120, 120, 120)
+        pygame.draw.rect(screen, border_col, self.rect, 1)
+        txt = self.text
+        surf = font.render(txt, True, (255, 255, 255))
+        screen.blit(surf, (self.x + 4, self.y + (self.H - surf.get_height()) // 2))
+        if self.active:
+            # blinking cursor (visible on even half-seconds)
+            if (pygame.time.get_ticks() // 500) % 2 == 0:
+                cx = self.x + 4 + surf.get_width()
+                pygame.draw.line(screen, (255, 255, 255),
+                                 (cx, self.y + 3), (cx, self.y + self.H - 3), 1)
+
+    @property
+    def selected(self):
+        """Duck-type Dropdown.selected for backward compatibility."""
+        return self.text
+
+    def handle_event(self, event) -> bool:
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.active = True
+                return True
+            return False  # deactivation handled externally
+        if event.type == pygame.KEYDOWN and self.active:
+            if event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                self.active = False
+            elif event.unicode and len(self.text) < 24:
+                self.text += event.unicode
+            return True
+        return False
+
+
+# ─── Touch numeric keypad overlay ────────────────────────────────────────
+
+class NumPad:
+    """Touch-screen numeric keypad that edits a TextInput in-place."""
+    _BW  = 46    # button width
+    _BH  = 40    # button height
+    _GAP = 4     # gap between buttons
+    _DH  = 26    # display bar height
+
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+        self.target: object = None   # TextInput being edited
+        self.allow_dot = False
+        self._btns = self._build_buttons()
+
+    def _build_buttons(self):
+        bw, bh, g, dh = self._BW, self._BH, self._GAP, self._DH
+        s = bw + g          # stride
+        ry = [dh + g + i * (bh + g) for i in range(4)]   # row y offsets
+        btns = []
+        for ri, row in enumerate([['7','8','9'], ['4','5','6'], ['1','2','3'], ['.','0','']]):
+            for ci, lbl in enumerate(row):
+                if lbl:
+                    btns.append((lbl, pygame.Rect(self.x + ci*s, self.y + ry[ri], bw, bh)))
+        rc = self.x + 3 * s   # right-column x
+        btns.append(('←', pygame.Rect(rc, self.y + ry[0], bw, bh)))
+        btns.append(('C',  pygame.Rect(rc, self.y + ry[1], bw, bh)))
+        # OK spans the bottom two rows
+        ok_h = bh * 2 + g
+        btns.append(('OK', pygame.Rect(rc, self.y + ry[2], bw, ok_h)))
+        return btns
+
+    @property
+    def visible(self):
+        return self.target is not None
+
+    def attach(self, target, allow_dot: bool = False):
+        self.target = target
+        self.allow_dot = allow_dot
+
+    def detach(self):
+        self.target = None
+
+    def _bounds(self):
+        bw, bh, g, dh = self._BW, self._BH, self._GAP, self._DH
+        w = 4 * bw + 3 * g
+        h = dh + g + 4 * bh + 3 * g
+        return pygame.Rect(self.x, self.y, w, h)
+
+    def handle_event(self, event) -> bool:
+        if not self.visible:
+            return False
+        if event.type != pygame.MOUSEBUTTONDOWN:
+            return False
+        if not self._bounds().collidepoint(event.pos):
+            self.detach()
+            return False
+        for lbl, r in self._btns:
+            if r.collidepoint(event.pos):
+                if lbl == 'OK':
+                    self.detach()
+                elif lbl == '←':
+                    self.target.text = self.target.text[:-1]
+                elif lbl == 'C':
+                    self.target.text = ''
+                elif lbl == '.' and self.allow_dot:
+                    self.target.text += '.'
+                elif lbl.isdigit():
+                    self.target.text += lbl
+                break
+        return True
+
+    def draw(self, screen, font):
+        if not self.visible:
+            return
+        bw, bh, g, dh = self._BW, self._BH, self._GAP, self._DH
+        bounds = self._bounds()
+        # Background panel
+        pygame.draw.rect(screen, (30, 30, 48), bounds, border_radius=7)
+        pygame.draw.rect(screen, (90, 110, 180), bounds, 1, border_radius=7)
+        # Display bar
+        disp = pygame.Rect(self.x + 3, self.y + 3, bounds.width - 6, dh - 2)
+        pygame.draw.rect(screen, (15, 15, 28), disp, border_radius=3)
+        txt = self.target.text if self.target else ''
+        ts = font.render(txt, True, (160, 255, 160))
+        screen.blit(ts, (disp.x + 4, disp.y + (disp.height - ts.get_height()) // 2))
+        # Buttons
+        for lbl, r in self._btns:
+            disabled = (lbl == '.' and not self.allow_dot)
+            if lbl == 'OK':
+                col = (55, 150, 55)
+            elif lbl in ('←', 'C'):
+                col = (140, 55, 55)
+            elif disabled:
+                col = (40, 40, 40)
+            else:
+                col = (65, 70, 105)
+            pygame.draw.rect(screen, col, r, border_radius=4)
+            pygame.draw.rect(screen, (100, 110, 160), r, 1, border_radius=4)
+            ls = font.render(lbl, True, (130, 130, 130) if disabled else (255, 255, 255))
+            screen.blit(ls, (r.x + (r.width - ls.get_width()) // 2,
+                             r.y + (r.height - ls.get_height()) // 2))
 
 
 # ─── Compact LFO panel (fits ~280 × 80) ───────────────────────────────────
@@ -1000,75 +1244,139 @@ def launch_ui(wall=None):
     brightness = saved_cfg.get("brightness", 1.0)
     mic_sensitivity = saved_cfg.get("mic_sensitivity", 1.0)
 
-    # Apply saved matrix dimensions
-    _cfg.MATRIX_WIDTH = saved_cfg.get("matrix_width", 24)
-    _cfg.MATRIX_HEIGHT = saved_cfg.get("matrix_height", 24)
+    # Determine initial canvas size from multi-device config
+    _saved_devices = saved_cfg.get("wled_devices") or _cfg.WLED_DEVICES
+    while len(_saved_devices) < 3:
+        _saved_devices = list(_saved_devices) + [_cfg.WLED_DEVICES[-1]]
+    _saved_mode = saved_cfg.get("multi_wled_mode", "single")
+
+    def _canvas_from_devices(devices, mode):
+        """Compute canvas (width, height) from a list of raw device dicts."""
+        active = [d for d in devices if d.get("active", True)]
+        if not active:
+            return _safe_dim(devices[0].get("width", 24)), _safe_dim(devices[0].get("height", 24))
+        if mode == "extend":
+            cw = max(_safe_pos(d.get("x", 0)) + _safe_dim(d.get("width", 24)) for d in active)
+            ch = max(_safe_pos(d.get("y", 0)) + _safe_dim(d.get("height", 24)) for d in active)
+            return max(1, cw), max(1, ch)
+        d0 = active[0]
+        return _safe_dim(d0.get("width", 24)), _safe_dim(d0.get("height", 24))
+
+    def _canvas_from_dev_inputs(dev_inputs, mode):
+        """Compute canvas size from live widget dicts."""
+        active = [d for d in dev_inputs if d["active"]]
+        if not active:
+            return 24, 24
+        if mode == "extend":
+            cw = max(_safe_pos(d["x"].selected) + _safe_dim(d["w"].selected) for d in active)
+            ch = max(_safe_pos(d["y"].selected) + _safe_dim(d["h"].selected) for d in active)
+            return max(1, cw), max(1, ch)
+        d0 = active[0]
+        return _safe_dim(d0["w"].selected), _safe_dim(d0["h"].selected)
+
+    _cfg.MATRIX_WIDTH, _cfg.MATRIX_HEIGHT = _canvas_from_devices(
+        _saved_devices, _saved_mode)
     WALL_W = _cfg.MATRIX_WIDTH
     WALL_H = _cfg.MATRIX_HEIGHT
 
-    # Ensure wall remap_mode is set at startup
-    if wall is not None and hasattr(wall, 'set_remap_mode'):
-        wall.set_remap_mode(saved_cfg.get("wiring_mode", "COLUMN_MAJOR"))
+    # Apply saved multi-device mode to wall
+    if wall is not None and hasattr(wall, 'set_mode'):
+        wall.set_mode(_saved_mode)
 
     orientation = saved_cfg.get("orientation", "normal")
 
     last_cycle_time = time.time()
 
-    # SYNC button + large BPM readout to its right
-    sync_btn = pygame.Rect(30, 20, 120, 40)
+    # ── CONFIG-tab left column ──────────────────────────────────────────
+    sync_btn        = pygame.Rect(30, 20, 120, 40)
     bpm_display_rect = pygame.Rect(160, 20, 130, 40)
 
     bright_slider = HSlider("brightness", brightness, 0.0, 1.0, 0.01, 30, 90, 200)
 
-    # Mic sensitivity slider + level meter
-    # Level meter sits above the slider; label sits below
     mic_level_rect = pygame.Rect(30, 120, 200, 12)
     mic_slider = HSlider("mic_sens", mic_sensitivity, 0.1, 3.0, 0.01, 30, 140, 200)
 
-    # Right-column dropdowns — equally spaced, order: Display, Protocol, Wiring, Width, Height, Orientation, Sprites
-    # Available vertical space: 0–330 (save button at 330). 7 items × 24px + 8 gaps × ~19px = 319px.
-    _RDD_X = 430
-    _RDD_Y = [15, 57, 99, 141, 183, 225, 267]   # Display, Protocol, Wiring, Width, Height, Orientation, Sprites
-
-    # Display mode selector (simulator rendering style) — saved in YAML
+    _LDD_X = 140
     SIM_MODES = ["Fill", "Grid", "Point"]
     sim_mode = saved_cfg.get("display_mode", "Fill")
     sim_mode_dd = Dropdown("Display", SIM_MODES, sim_mode,
-                           _RDD_X, _RDD_Y[0], width=120, show_label=True, max_visible=3)
+                           _LDD_X, 195, width=90, show_label=True, max_visible=3)
 
-    # Protocol selector
-    protocol_dd = Dropdown("Protocol", PROTOCOL_CHOICES,
-                           saved_cfg.get("led_protocol", "DRGB"),
-                           _RDD_X, _RDD_Y[1], width=120, show_label=True, max_visible=7)
-
-    # Wiring/remap mode selector
-    WIRING_CHOICES = ["COLUMN_MAJOR", "PANEL_SERPENTINE", "THREE_PANEL_COL_MAJOR"]
-    wiring_dd = Dropdown("Wiring", WIRING_CHOICES,
-                         saved_cfg.get("wiring_mode", "COLUMN_MAJOR"),
-                         _RDD_X, _RDD_Y[2], width=180, show_label=True, max_visible=4)
-
-    # Matrix dimension controls
-    dim_options = [str(i) for i in range(4, 65)]
-    width_dd = Dropdown("Width", dim_options, str(_cfg.MATRIX_WIDTH),
-                        _RDD_X, _RDD_Y[3], width=80, show_label=True, max_visible=12)
-    height_dd = Dropdown("Height", dim_options, str(_cfg.MATRIX_HEIGHT),
-                         _RDD_X, _RDD_Y[4], width=80, show_label=True, max_visible=12)
-
-    # Orientation selector
     orientation_dd = Dropdown("Orientation", ORIENTATION_CHOICES,
                               saved_cfg.get("orientation", "normal"),
-                              _RDD_X, _RDD_Y[5], width=140, show_label=True, max_visible=4)
+                              _LDD_X + 30, 237, width=140, show_label=True, max_visible=4)
 
-    # Render sprites toggle
     _sprites_default = "Yes" if saved_cfg.get("render_sprites", True) else "No"
     sprites_dd = Dropdown("Sprites", ["Yes", "No"], _sprites_default,
-                          _RDD_X, _RDD_Y[6], width=80, show_label=True, max_visible=2)
+                          _LDD_X, 279, width=80, show_label=True, max_visible=2)
 
-    # Quit button (bottom-right of CONFIG tab content area)
-    quit_btn = pygame.Rect(SCREEN_W - 140, CONTENT_H - 50, 120, 40)
+    # SAVE / QUIT – bottom-left above the tab bar
+    save_cfg_btn = pygame.Rect(10, CONTENT_H - 90, 110, 38)
+    quit_btn     = pygame.Rect(10, CONTENT_H - 48, 110, 38)
 
-    # Save config button
-    save_cfg_btn = pygame.Rect(SCREEN_W - 140, CONTENT_H - 100, 120, 40)
+    # ── CONFIG-tab right column: multi-device output ────────────────────
+    WIRING_CHOICES = ["COLUMN_MAJOR", "COLUMN_SERPENTINE", "PANEL_SERPENTINE", "THREE_PANEL_COL_MAJOR"]
+
+    _RDX = 435   # right section start x
+    multi_mode_dd = Dropdown("Mode", MULTI_MODE_CHOICES,
+                             _saved_mode, _RDX + 50, 5,
+                             width=90, show_label=True, max_visible=3)
+
+    # ── Per-device widgets (3 devices) ──────────────────────────────────
+    # Panel layout (per device, y_base relative):
+    #   +0      header bar (16px) – label + active toggle
+    #   +18     IP text input
+    #   +44     W / H / X / Y text inputs
+    #   +70     Protocol dropdown
+    #   +96     Wiring dropdown
+    # Panel height: 120px  |  3 panels from y=33: 33, 157, 281
+    _DEV_Y_BASES = [33, 157, 281]
+
+    def _make_device_widgets(dev_cfg: dict, y_base: int, idx: int):
+        host_default   = dev_cfg.get("host", f"10.0.0.{2 + idx}")
+        w_default      = str(dev_cfg.get("width", 24))
+        h_default      = str(dev_cfg.get("height", 24))
+        x_default      = str(dev_cfg.get("x", 0))
+        y_default      = str(dev_cfg.get("y", 0))
+        proto_default  = dev_cfg.get("protocol", "DRGB")
+        wiring_default = dev_cfg.get("wiring_mode", "COLUMN_MAJOR")
+        active_default = bool(dev_cfg.get("active", idx == 0))
+        p = f"d{idx}"
+        return {
+            "ip":     TextInput(f"{p}_ip", host_default, _RDX + 22,  y_base + 18, width=185),
+            "w":      TextInput(f"{p}_w",  w_default,    _RDX + 18,  y_base + 44, width=36),
+            "h":      TextInput(f"{p}_h",  h_default,    _RDX + 76,  y_base + 44, width=36),
+            "x":      TextInput(f"{p}_x",  x_default,    _RDX + 134, y_base + 44, width=36),
+            "y":      TextInput(f"{p}_y",  y_default,    _RDX + 192, y_base + 44, width=36),
+            "proto":  Dropdown(f"{p}_proto",  PROTOCOL_CHOICES, proto_default,
+                               _RDX + 50, y_base + 70, width=145, show_label=False, max_visible=7),
+            "wiring": Dropdown(f"{p}_wiring", WIRING_CHOICES, wiring_default,
+                               _RDX + 57, y_base + 96, width=195, show_label=False, max_visible=4),
+            "active":      active_default,
+            "active_rect": pygame.Rect(_RDX + 267, y_base, 88, 16),
+        }
+
+    dev_inputs = [
+        _make_device_widgets(_saved_devices[0], _DEV_Y_BASES[0], 0),
+        _make_device_widgets(_saved_devices[1], _DEV_Y_BASES[1], 1),
+        _make_device_widgets(_saved_devices[2], _DEV_Y_BASES[2], 2),
+    ]
+
+    # ── Numpad (shown when editing IP/W/H/X/Y fields) ───────────────────
+    numpad = NumPad(10, 110)
+
+    # ── Legacy aliases (backward-compat for _gather_settings calls) ──────
+    protocol_dd = dev_inputs[0]["proto"]
+    wiring_dd   = dev_inputs[0]["wiring"]
+    width_dd    = dev_inputs[0]["w"]
+    height_dd   = dev_inputs[0]["h"]
+
+    # ── helper: all TextInputs across all device panels ──────────────────
+    def _all_text_inputs():
+        fields = []
+        for dw in dev_inputs:
+            fields += [dw["ip"], dw["w"], dw["h"], dw["x"], dw["y"]]
+        return fields
 
     # Load ALL patches into RAM cache (eliminates file I/O during runtime)
     _load_all_patches_into_cache()
@@ -1145,7 +1453,9 @@ def launch_ui(wall=None):
                                 cycle_beats, auto_bpm,
                                 bright_slider, width_dd, height_dd, mic_sensitivity,
                                 protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
-                                sprites_dd, _cfg))
+                                sprites_dd, _cfg,
+                                multi_mode_dd=multi_mode_dd,
+                                dev_inputs=dev_inputs))
                         active_tab = ti
                         # reset save/clear modes when leaving PATCH
                         if ti != 2:
@@ -1320,53 +1630,124 @@ def launch_ui(wall=None):
             elif active_tab == 3:
                 bright_slider.handle_event(event)
                 mic_slider.handle_event(event)
-                # Track sensitivity from slider
                 mic_sensitivity = mic_slider.value
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if sync_btn.collidepoint(event.pos):
-                        auto_bpm = not auto_bpm
-                    elif save_cfg_btn.collidepoint(event.pos):
-                        save_yaml(_gather_settings(
-                            cycle_beats, auto_bpm,
-                            bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
-                            sprites_dd, _cfg))
-                    elif quit_btn.collidepoint(event.pos):
-                        # Save settings before quitting
-                        save_yaml(_gather_settings(
-                            cycle_beats, auto_bpm,
-                            bright_slider, width_dd, height_dd, mic_sensitivity,
-                            protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
-                            sprites_dd, _cfg))
-                        running = False
-                    width_dd.handle_event(event)
-                    height_dd.handle_event(event)
-                    protocol_dd.handle_event(event)
-                    wiring_dd.handle_event(event)
-                    orientation_dd.handle_event(event)
-                    sim_mode_dd.handle_event(event)
-                    sprites_dd.handle_event(event)
+                # Numpad gets first crack at all events
+                if numpad.handle_event(event):
+                    pass
+                else:
+                    if event.type == pygame.KEYDOWN:
+                        for ti_widget in _all_text_inputs():
+                            if ti_widget.active:
+                                ti_widget.handle_event(event)
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        _consumed = False
+                        # ── If any dropdown is already open, give it the event
+                        # exclusively so open menus can't bleed through to
+                        # widgets drawn behind their visible items. ──────────
+                        _all_config_dds = (
+                            [multi_mode_dd, orientation_dd, sim_mode_dd, sprites_dd]
+                            + [dw["proto"] for dw in dev_inputs]
+                            + [dw["wiring"] for dw in dev_inputs]
+                        )
+                        _open_dd = next((d for d in _all_config_dds if d.open), None)
+                        if _open_dd is not None:
+                            _open_dd.handle_event(event)
+                            _consumed = True
+                        if not _consumed and sync_btn.collidepoint(event.pos):
+                            auto_bpm = not auto_bpm
+                            _consumed = True
+                        elif not _consumed and save_cfg_btn.collidepoint(event.pos):
+                            save_yaml(_gather_settings(
+                                cycle_beats, auto_bpm,
+                                bright_slider, width_dd, height_dd, mic_sensitivity,
+                                protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                                sprites_dd, _cfg,
+                                multi_mode_dd=multi_mode_dd,
+                                dev_inputs=dev_inputs))
+                            _consumed = True
+                        elif not _consumed and quit_btn.collidepoint(event.pos):
+                            save_yaml(_gather_settings(
+                                cycle_beats, auto_bpm,
+                                bright_slider, width_dd, height_dd, mic_sensitivity,
+                                protocol_dd, wiring_dd, orientation_dd, sim_mode_dd,
+                                sprites_dd, _cfg,
+                                multi_mode_dd=multi_mode_dd,
+                                dev_inputs=dev_inputs))
+                            running = False
+                            _consumed = True
+                        if not _consumed:
+                            # Mode selector
+                            _consumed = multi_mode_dd.handle_event(event)
+                        if not _consumed:
+                            # Per-device: active toggle, proto/wiring dropdowns
+                            for dw in dev_inputs:
+                                if dw["proto"].handle_event(event):
+                                    _consumed = True
+                                    break
+                                if dw["wiring"].handle_event(event):
+                                    _consumed = True
+                                    break
+                        if not _consumed:
+                            for dw in dev_inputs:
+                                if dw["active_rect"].collidepoint(event.pos):
+                                    dw["active"] = not dw["active"]
+                                    _consumed = True
+                                    break
+                        if not _consumed:
+                            # Tap IP/W/H/X/Y → attach numpad
+                            for dw in dev_inputs:
+                                for _key, _adot in (("ip", True), ("w", False),
+                                                    ("h", False), ("x", False), ("y", False)):
+                                    if dw[_key].rect.collidepoint(event.pos):
+                                        for dw2 in dev_inputs:
+                                            for k in ("ip", "w", "h", "x", "y"):
+                                                dw2[k].active = False
+                                        dw[_key].active = True
+                                        numpad.attach(dw[_key], _adot)
+                                        _consumed = True
+                                        break
+                                if _consumed:
+                                    break
+                        if not _consumed:
+                            # Left column dropdowns
+                            _consumed = (orientation_dd.handle_event(event) or
+                                         sim_mode_dd.handle_event(event) or
+                                         sprites_dd.handle_event(event))
 
-                    sim_mode = sim_mode_dd.selected
-                    # apply protocol change to wall
-                    if wall is not None and wall.protocol != protocol_dd.selected.upper().replace(" ", ""):
-                        wall.protocol = protocol_dd.selected
-                    # apply wiring/remap mode change to wall
-                    if wall is not None and hasattr(wall, 'set_remap_mode'):
-                        wall.set_remap_mode(wiring_dd.selected)
-                    # apply dimension changes
-                    new_w = int(width_dd.selected)
-                    new_h = int(height_dd.selected)
-                    if new_w != _cfg.MATRIX_WIDTH or new_h != _cfg.MATRIX_HEIGHT:
-                        _cfg.MATRIX_WIDTH = new_w
-                        _cfg.MATRIX_HEIGHT = new_h
-                        WALL_W = new_w
-                        WALL_H = new_h
-                        try:
-                            pattern = module.Pattern(WALL_W, WALL_H, params=params)
-                        except Exception as e:
-                            print(f"[ui] Pattern resize failed: {e}")
+                        sim_mode = sim_mode_dd.selected
 
+                        # Apply mode change to wall
+                        if wall is not None and hasattr(wall, 'set_mode'):
+                            wall.set_mode(multi_mode_dd.selected)
+
+                        # Apply per-device config changes to wall
+                        if wall is not None and hasattr(wall, 'update_device'):
+                            for di, dw in enumerate(dev_inputs):
+                                wall.update_device(
+                                    di,
+                                    host=dw["ip"].text,
+                                    width=_safe_dim(dw["w"].selected),
+                                    height=_safe_dim(dw["h"].selected),
+                                    x=_safe_pos(dw["x"].selected),
+                                    y=_safe_pos(dw["y"].selected),
+                                    protocol=dw["proto"].selected,
+                                    wiring_mode=dw["wiring"].selected,
+                                    active=dw["active"],
+                                )
+
+                        # Update canvas size
+                        new_w, new_h = _canvas_from_dev_inputs(
+                            dev_inputs, multi_mode_dd.selected)
+                        if new_w != _cfg.MATRIX_WIDTH or new_h != _cfg.MATRIX_HEIGHT:
+                            _cfg.MATRIX_WIDTH = new_w
+                            _cfg.MATRIX_HEIGHT = new_h
+                            WALL_W = new_w
+                            WALL_H = new_h
+                            try:
+                                pattern = module.Pattern(WALL_W, WALL_H, params=params)
+                            except Exception as e:
+                                print(f"[ui] Pattern resize failed: {e}")
+                    # Left column dropdowns
         # ── instant slider updates ──────────────────────────────────────
         if instant_update and active_tab == 0:
             for s in sliders:
@@ -1629,14 +2010,13 @@ def launch_ui(wall=None):
         elif active_tab == 3:
             # ── CONFIG ──────────────────────────────────────────────────
 
-            # auto-BPM sync button
+            # ── Left column ─────────────────────────────────────────────
             sc = (100, 255, 100) if auto_bpm else (90, 90, 90)
             pygame.draw.rect(screen, sc, sync_btn)
             screen.blit(font.render("SYNC " + ("ON" if auto_bpm else "OFF"),
                                     True, (255, 255, 255)),
                         (sync_btn.x + 8, sync_btn.y + 10))
 
-            # BPM readout (large, to the right of SYNC, same height)
             pygame.draw.rect(screen, (40, 40, 40), bpm_display_rect, border_radius=4)
             bpm_font = pygame.font.SysFont("monospace", 28, bold=True)
             bpm_surf = bpm_font.render(f"{_lfo.BPM:.1f}", True, (127, 255, 0))
@@ -1646,12 +2026,10 @@ def launch_ui(wall=None):
             screen.blit(bpm_lbl, (bpm_display_rect.right - bpm_lbl.get_width() - 4,
                                   bpm_display_rect.bottom - bpm_lbl.get_height() - 3))
 
-            # brightness
             bright_slider.draw(screen, font)
             screen.blit(font.render(f"Brightness: {bright_slider.value:.0%}",
                                     True, (200, 200, 200)), (30, 107))
 
-            # Mic level meter (above slider)
             level = get_input_level(mic_sensitivity)
             pygame.draw.rect(screen, (50, 50, 50), mic_level_rect)
             bar_w = int(level * mic_level_rect.width)
@@ -1659,38 +2037,82 @@ def launch_ui(wall=None):
                 col = (0, 200, 0) if level < 0.7 else (255, 200, 0) if level < 0.9 else (255, 50, 50)
                 pygame.draw.rect(screen, col,
                                  pygame.Rect(mic_level_rect.x, mic_level_rect.y, bar_w, mic_level_rect.height))
-
-            # Mic sensitivity slider + label below
             mic_slider.draw(screen, font)
             screen.blit(font.render(f"Mic Sensitivity: {mic_slider.value:.2f}",
                                     True, (200, 200, 200)), (30, 162))
 
-            # Right column: Display, Protocol, Wiring, Width, Height, Orientation, Sprites
             sim_mode_dd.draw(screen, font)
-            protocol_dd.draw(screen, font)
-            wiring_dd.draw(screen, font)
-            width_dd.draw(screen, font)
-            height_dd.draw(screen, font)
             orientation_dd.draw(screen, font)
             sprites_dd.draw(screen, font)
 
-            # quit button
-            pygame.draw.rect(screen, (180, 50, 50), quit_btn)
-            ql = bold_font.render("QUIT", True, (255, 255, 255))
-            screen.blit(ql, (quit_btn.x + (quit_btn.width - ql.get_width()) // 2,
-                             quit_btn.y + (quit_btn.height - ql.get_height()) // 2))
+            # SAVE / QUIT (bottom-left)
+            pygame.draw.rect(screen, (80, 160, 80), save_cfg_btn, border_radius=5)
+            _sl = bold_font.render("SAVE", True, (255, 255, 255))
+            screen.blit(_sl, (save_cfg_btn.x + (save_cfg_btn.width  - _sl.get_width())  // 2,
+                              save_cfg_btn.y + (save_cfg_btn.height - _sl.get_height()) // 2))
+            pygame.draw.rect(screen, (180, 50, 50), quit_btn, border_radius=5)
+            _ql = bold_font.render("QUIT", True, (255, 255, 255))
+            screen.blit(_ql, (quit_btn.x + (quit_btn.width  - _ql.get_width())  // 2,
+                              quit_btn.y + (quit_btn.height - _ql.get_height()) // 2))
 
-            # save config button
-            pygame.draw.rect(screen, (80, 160, 80), save_cfg_btn)
-            sl = bold_font.render("SAVE", True, (255, 255, 255))
-            screen.blit(sl, (save_cfg_btn.x + (save_cfg_btn.width - sl.get_width()) // 2,
-                             save_cfg_btn.y + (save_cfg_btn.height - sl.get_height()) // 2))
+            # ── Divider ──────────────────────────────────────────────────
+            pygame.draw.line(screen, (80, 80, 80), (_RDX - 10, 0), (_RDX - 10, CONTENT_H))
 
-            # config-tab: open dropdowns on top (drawn last to overlay other elements)
-            for _dd in (sim_mode_dd, protocol_dd, wiring_dd, width_dd, height_dd,
-                        orientation_dd, sprites_dd):
+            # ── Right column header ──────────────────────────────────────
+            screen.blit(sm_font.render("OUTPUT", True, (160, 200, 255)), (_RDX, CONTENT_H - 16))
+            multi_mode_dd.draw(screen, font)
+
+            # ── Device panels ────────────────────────────────────────────
+            for _di, (dw, _yb) in enumerate(zip(dev_inputs, _DEV_Y_BASES)):
+                _dlbl = f"Device {_di + 1}"
+                # Header bar
+                pygame.draw.rect(screen, (45, 55, 75), pygame.Rect(_RDX, _yb, 355, 16))
+                screen.blit(sm_font.render(_dlbl, True, (180, 200, 255)), (_RDX + 4, _yb + 1))
+                # Active toggle button
+                _act_col = (60, 160, 60) if dw["active"] else (100, 40, 40)
+                pygame.draw.rect(screen, _act_col, dw["active_rect"], border_radius=3)
+                _act_lbl = sm_font.render("ON" if dw["active"] else "OFF", True, (255, 255, 255))
+                screen.blit(_act_lbl, (dw["active_rect"].x + (dw["active_rect"].width - _act_lbl.get_width()) // 2,
+                                       _yb + 1))
+
+                # IP row
+                _col = (160, 160, 160) if dw["active"] else (80, 80, 80)
+                screen.blit(sm_font.render("IP:", True, _col), (_RDX + 2, _yb + 20))
+                dw["ip"].draw(screen, font)
+
+                # W / H / X / Y row
+                for _lbl, _lx in (("W:", _RDX+2), ("H:", _RDX+60),
+                                  ("X:", _RDX+118), ("Y:", _RDX+176)):
+                    screen.blit(sm_font.render(_lbl, True, _col), (_lx, _yb + 46))
+                dw["w"].draw(screen, font)
+                dw["h"].draw(screen, font)
+                dw["x"].draw(screen, font)
+                dw["y"].draw(screen, font)
+
+                # Proto row
+                screen.blit(sm_font.render("Proto:", True, _col), (_RDX + 2, _yb + 72))
+                dw["proto"].draw(screen, font)
+
+                # Wiring row
+                screen.blit(sm_font.render("Wiring:", True, _col), (_RDX + 2, _yb + 98))
+                dw["wiring"].draw(screen, font)
+
+            # ── Canvas size readout ──────────────────────────────────────
+            _cw, _ch = _canvas_from_dev_inputs(dev_inputs, multi_mode_dd.selected)
+            screen.blit(sm_font.render(f"Canvas: {_cw}\u00d7{_ch}", True, (140, 200, 140)),
+                        (_RDX, _DEV_Y_BASES[2] + 122))
+
+            # Open dropdowns on top
+            _all_cfg_dds = (
+                [sim_mode_dd, orientation_dd, sprites_dd, multi_mode_dd]
+                + [dw["proto"]  for dw in dev_inputs]
+                + [dw["wiring"] for dw in dev_inputs]
+            )
+            for _dd in _all_cfg_dds:
                 if _dd.open:
                     _dd.draw(screen, font)
+            # Numpad drawn last so it sits on top of everything
+            numpad.draw(screen, font)
 
         # ── Tab bar ─────────────────────────────────────────────────────
         for i, tr in enumerate(tab_rects):

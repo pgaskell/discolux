@@ -17,6 +17,7 @@ All settings are read from ``config.py``.
 import json as _json
 import socket
 import struct
+import threading
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
@@ -63,8 +64,10 @@ class Wall:
         self.host = host
         self._protocol = protocol.upper().replace(" ", "")
 
-        # Reusable UDP socket (non-blocking sends)
+        # Reusable UDP socket – set non-blocking so sendto() never stalls the
+        # render loop when a device is temporarily unreachable / ARP-pending.
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._sock.setblocking(False)
 
         # HTTP endpoint (only for HTTP JSON mode)
         self._url = f"http://{self.host}/json/state" if self.host else None
@@ -75,8 +78,8 @@ class Wall:
         # Art-Net sequence counter (wraps 0-255)
         self._artnet_seq = 0
 
-        # Initialise WLED
-        self._init_wled()
+        # Initialise WLED (async – must not block render loop)
+        self._init_wled_async()
 
     # ── public API ──────────────────────────────────────────────────────
 
@@ -87,8 +90,11 @@ class Wall:
     @protocol.setter
     def protocol(self, value: str):
         """Change protocol at runtime (called from UI)."""
-        self._protocol = value.upper().replace(" ", "")
-        self._init_wled()
+        new = value.upper().replace(" ", "")
+        if new == self._protocol:
+            return  # no-op: avoid unnecessary _init_wled HTTP call
+        self._protocol = new
+        self._init_wled_async()
 
     def show(self, frame: list[tuple]) -> None:
         """Send *frame* (flat list of (R,G,B[,W]) tuples, length W×H).
@@ -118,6 +124,8 @@ class Wall:
             remapped = self._row_to_panel_serpentine(frame)
         elif rm == 'THREE_PANEL_COL_MAJOR':
             remapped = self._row_to_three_panel_col_major(frame)
+        elif rm == 'COLUMN_SERPENTINE':
+            remapped = self._row_to_col_serpentine(frame)
         else:
             remapped = self._row_to_col_major(frame)
 
@@ -174,14 +182,21 @@ class Wall:
 
     def _row_to_panel_serpentine(self, frame: list[tuple]) -> list[tuple]:
         """
-        Remap for 5 chained panels, each panel is row-major, each row within a panel is serpentine (reversed every other row), panels chained left-to-right.
-        Assumes width and height are divisible by 5.
+        Remap for chained panels, each panel is row-major, each row within a
+        panel is serpentine (reversed every other row), panels chained
+        left-to-right.  num_panels is derived from the width so the strip
+        does not need to be exactly 5 panels wide.
         """
         w, h = self.width, self.height
-        num_panels = 5
+        # Derive num_panels: try common divisors in preference order
+        for np in (5, 4, 3, 2, 1):
+            if w % np == 0:
+                num_panels = np
+                break
         panel_w = w // num_panels
         panel_h = h
-        out = [None] * (w * h)
+        # Pre-fill with black so any unaddressed pixel is safe
+        out = [(0, 0, 0)] * (w * h)
         for p in range(num_panels):
             for y in range(panel_h):
                 serp = (y % 2 == 1)
@@ -190,7 +205,8 @@ class Wall:
                     src_y = y
                     src_idx = src_y * w + src_x
                     dst_idx = p * panel_w * panel_h + y * panel_w + x
-                    out[dst_idx] = frame[src_idx] if src_idx < len(frame) else (0, 0, 0)
+                    if dst_idx < len(out):
+                        out[dst_idx] = frame[src_idx] if src_idx < len(frame) else (0, 0, 0)
         return out
 
     def clear(self) -> None:
@@ -205,7 +221,7 @@ class Wall:
         self.width = width
         self.height = height
         self.num_pixels = width * height
-        self._init_wled()
+        self._init_wled_async()
 
     # ────────────────────────────────────────────────────────────────────
     #  Pixel reordering: row-major → column-major
@@ -220,12 +236,31 @@ class Wall:
         each column before moving to the next column.
         """
         w, h = self.width, self.height
-        out = [None] * (w * h)
+        out = [(0, 0, 0)] * (w * h)
         for row in range(h):
             for col in range(w):
                 src = row * w + col       # row-major index
                 dst = col * h + row       # column-major index
                 out[dst] = frame[src] if src < len(frame) else (0, 0, 0)
+        return out
+
+    def _row_to_col_serpentine(self, frame: list[tuple]) -> list[tuple]:
+        """Transpose row-major to column-major with serpentine (boustrophedon)
+        column direction.
+
+        Even columns (0, 2, …): top → bottom  (row 0 first)
+        Odd  columns (1, 3, …): bottom → top  (row H-1 first)
+
+        Use this when the LED strip zigzags between columns rather than
+        resetting to the same end for every column.
+        """
+        w, h = self.width, self.height
+        out = []
+        for col in range(w):
+            rows = range(h) if col % 2 == 0 else range(h - 1, -1, -1)
+            for row in rows:
+                src = row * w + col
+                out.append(frame[src] if src < len(frame) else (0, 0, 0))
         return out
 
     # ────────────────────────────────────────────────────────────────────
@@ -459,6 +494,10 @@ class Wall:
     def _send_http_json(self, frame: list[tuple]) -> None:
         if self._url is None:
             return
+        # Skip if a previous HTTP request is still in flight so we never
+        # queue up blocking calls and stall the render loop.
+        if getattr(self, '_http_in_flight', False):
+            return
 
         w, h = self.width, self.height
         segs = []
@@ -475,7 +514,14 @@ class Wall:
             b = sum(p[2] for p in row_pixels) // n
             segs.append({"id": row, "col": [[r, g, b]]})
 
-        self._post_json({"seg": segs})
+        payload = {"seg": segs}
+        self._http_in_flight = True
+        def _send():
+            try:
+                self._post_json(payload)
+            finally:
+                self._http_in_flight = False
+        threading.Thread(target=_send, daemon=True).start()
 
     # ── helpers ─────────────────────────────────────────────────────────
 
@@ -495,6 +541,10 @@ class Wall:
             urlopen(req, timeout=WLED_TIMEOUT)
         except (URLError, OSError):
             pass
+
+    def _init_wled_async(self) -> None:
+        """Kick off _init_wled in a daemon thread so it never blocks the caller."""
+        threading.Thread(target=self._init_wled, daemon=True).start()
 
     def _init_wled(self) -> None:
         """Initialise the WLED controller.
@@ -532,3 +582,171 @@ class Wall:
                   f"pixels={self.num_pixels} host={self.host}")
         except Exception as e:
             print(f"[wall] Warning: could not initialise WLED: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MultiWall – send frames to multiple WLED controllers
+# ═══════════════════════════════════════════════════════════════════════════
+
+MULTI_MODE_CHOICES = ["single", "mirror", "extend"]
+EXTEND_DIR_CHOICES = ["right", "left", "below", "above"]  # kept for compat
+
+
+class MultiWall:
+    """Manages one or more WLED controllers in single, mirror, or extend mode.
+
+    single  – only the first active device receives frames.
+    mirror  – identical frame sent to all active devices.
+    extend  – each active device renders its own (x, y) sub-region of the
+              canvas.  Canvas = bounding box of all active device origins+sizes.
+    """
+
+    def __init__(self, devices: list, mode: str = "single",
+                 extend_direction: str = "right"):
+        self._device_info: list[dict] = []
+        for d in devices:
+            w = Wall(
+                width=d.get("width", MATRIX_WIDTH),
+                height=d.get("height", MATRIX_HEIGHT),
+                protocol=d.get("protocol", LED_PROTOCOL),
+                host=d.get("host", WLED_HOST),
+            )
+            w.set_remap_mode(d.get("wiring_mode", "COLUMN_MAJOR"))
+            self._device_info.append({
+                "wall":   w,
+                "x":      int(d.get("x", 0)),
+                "y":      int(d.get("y", 0)),
+                "active": bool(d.get("active", True)),
+            })
+        self._mode = mode.lower()
+        self._update_canvas_size()
+
+    # ── helpers ──────────────────────────────────────────────────────────
+
+    def _active_devices(self) -> list:
+        return [d for d in self._device_info if d["active"]]
+
+    def _update_canvas_size(self) -> None:
+        active = self._active_devices()
+        if not active:
+            d0 = self._device_info[0] if self._device_info else None
+            self._width  = d0["wall"].width  if d0 else 24
+            self._height = d0["wall"].height if d0 else 24
+            return
+        if self._mode == "extend":
+            self._width  = max(d["x"] + d["wall"].width  for d in active)
+            self._height = max(d["y"] + d["wall"].height for d in active)
+        else:
+            d0 = active[0]
+            self._width  = d0["wall"].width
+            self._height = d0["wall"].height
+
+    # ── canvas dimensions ─────────────────────────────────────────────────
+
+    @property
+    def width(self) -> int:
+        return self._width
+
+    @property
+    def height(self) -> int:
+        return self._height
+
+    @property
+    def num_pixels(self) -> int:
+        return self._width * self._height
+
+    @property
+    def host(self) -> str:
+        return self._device_info[0]["wall"].host if self._device_info else ""
+
+    # ── protocol / remap pass-throughs ────────────────────────────────────
+
+    @property
+    def protocol(self) -> str:
+        return self._device_info[0]["wall"].protocol if self._device_info else ""
+
+    @protocol.setter
+    def protocol(self, value: str) -> None:
+        for d in self._device_info:
+            d["wall"].protocol = value
+
+    def set_remap_mode(self, mode: str, device_idx: int = 0) -> None:
+        if 0 <= device_idx < len(self._device_info):
+            self._device_info[device_idx]["wall"].set_remap_mode(mode)
+
+    # ── runtime config ────────────────────────────────────────────────────
+
+    def set_mode(self, mode: str) -> None:
+        self._mode = mode.lower()
+        self._update_canvas_size()
+
+    def set_extend_direction(self, direction: str) -> None:
+        pass  # no-op – direction is now encoded per-device via x/y origin
+
+    def update_device(self, idx: int, host: str = None, width: int = None,
+                      height: int = None, protocol: str = None,
+                      wiring_mode: str = None, x: int = None,
+                      y: int = None, active: bool = None) -> None:
+        """Update a device's settings at runtime; appends if idx is new."""
+        if idx >= len(self._device_info):
+            if host:
+                nw = Wall(
+                    width=width or MATRIX_WIDTH,
+                    height=height or MATRIX_HEIGHT,
+                    protocol=protocol or LED_PROTOCOL,
+                    host=host,
+                )
+                if wiring_mode:
+                    nw.set_remap_mode(wiring_mode)
+                self._device_info.append({
+                    "wall": nw, "x": x or 0, "y": y or 0, "active": True,
+                })
+        else:
+            d = self._device_info[idx]
+            w = d["wall"]
+            if host is not None and host != w.host:
+                w.host = host
+                w._url = f"http://{host}/json/state"
+            new_w = width  if width  is not None else w.width
+            new_h = height if height is not None else w.height
+            if new_w != w.width or new_h != w.height:
+                w.set_dimensions(new_w, new_h)
+            if protocol    is not None: w.protocol = protocol
+            if wiring_mode is not None: w.set_remap_mode(wiring_mode)
+            if x      is not None: d["x"]      = x
+            if y      is not None: d["y"]      = y
+            if active is not None: d["active"] = active
+        self._update_canvas_size()
+
+    # ── frame output ──────────────────────────────────────────────────────
+
+    def show(self, frame: list) -> None:
+        active = self._active_devices()
+        if not active:
+            return
+        if self._mode == "mirror":
+            for d in active:
+                d["wall"].show(frame)
+        elif self._mode == "extend":
+            self._show_extend(frame, active)
+        else:
+            active[0]["wall"].show(frame)
+
+    def _show_extend(self, frame: list, active_devices: list) -> None:
+        BLACK = (0, 0, 0, 0)
+        tw = self._width
+        for d in active_devices:
+            w = d["wall"]
+            ox, oy = d["x"], d["y"]
+            dw, dh = w.width, w.height
+            dev_frame = []
+            for row in range(dh):
+                for col in range(dw):
+                    src = (oy + row) * tw + (ox + col)
+                    dev_frame.append(frame[src] if 0 <= src < len(frame) else BLACK)
+            w.show(dev_frame)
+
+    def clear(self) -> None:
+        for d in self._device_info:
+            d["wall"].clear()
+
