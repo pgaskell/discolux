@@ -1,5 +1,7 @@
 # DiscoLux
 
+<img width="1180" height="923" alt="house_music_wall" src="https://github.com/user-attachments/assets/5169879b-da8a-44c4-ba6a-3c0ac9379551" />
+
 **Real-time LED wall controller with a touch-friendly UI, built for Raspberry Pi.**
 
 DiscoLux drives addressable LED matrices (WS2812 / WS2814 / SK6812) via
