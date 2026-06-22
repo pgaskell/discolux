@@ -11,6 +11,45 @@ an 800 × 480 touchscreen interface designed for live performance.
 
 ---
 
+This software was written specifically for a custom LED matrix display and a modified Govee LightWall.
+
+The complete parts needed to build a modified LightWall are available on Amazon.
+
+| Item | Supplier | QTY | Price | Total | Link |
+|------|----------|-----|-------|-------|------|
+| Govee Lightwall | Amazon | 1 | 449.99 | 449.99 | [Link](https://www.amazon.com/Govee-Lightwall-Portable-Dimmable-Waterproof/dp/B0GKPS7D76) |
+| GLEDOPTO Elite 4 Channel ESP32 WLED LED Strip Light Controller | Amazon | 1 | 30.59 | 30.59 | [Link](https://www.amazon.com/GLEDOPTO-Controller-Ethernet-Pluggable-Addressable/dp/B0FZ7WCYCK) |
+| USB 2.0 Mini Microphone | Amazon | 1 | 9.59 | 9.59 | [Link](https://www.amazon.com/Microphone-Raspberry-Desktop-Recording-YouTube/dp/B0CYM618H7) |
+| 7 Inch Touchscreen IPS DSI Display | Amazon | 1 | 38.99 | 38.99 | [Link](https://www.amazon.com/Hosyond-Touchscreen-Compatible-Capacitive-Driver-Free/dp/B0D3QB7X4Z) |
+| CanaKit Raspberry Pi 4 4GB Basic Kit | Amazon | 1 | 124.99 | 124.99 | [Link](https://www.amazon.com/CanaKit-Raspberry-4GB-Basic-Kit/dp/B07TXKY4Z9) |
+| Ethernet Cord, Black | Amazon | 1 | 15.99 | 15.99 | [Link](https://www.amazon.com/Cable-Matters-Snagless-Ethernet-Internet/dp/B0CP9XQWQ6) |
+| Sandisk Ultra microSD 64 GB | Amazon | 1 | 23.91 | 23.91 | [Link](https://www.amazon.com/SanDisk-Ultra%C2%AE-microSDHC-120MB-Class/dp/B0BDRVFDKP) |
+| | | | | **Total (1 wall):** | **694.05** |
+
+| Item | Supplier | QTY | Price | Total | Link |
+|------|----------|-----|-------|-------|------|
+| Govee Lightwall | Amazon | 2 | 449.99 | 899.98 | [Link](https://www.amazon.com/Govee-Lightwall-Portable-Dimmable-Waterproof/dp/B0GKPS7D76) |
+| GLEDOPTO Elite 4 Channel ESP32 WLED LED Strip Light Controller | Amazon | 2 | 30.59 | 61.18 | [Link](https://www.amazon.com/GLEDOPTO-Controller-Ethernet-Pluggable-Addressable/dp/B0FZ7WCYCK) |
+| USB 2.0 Mini Microphone | Amazon | 1 | 9.59 | 9.59 | [Link](https://www.amazon.com/Microphone-Raspberry-Desktop-Recording-YouTube/dp/B0CYM618H7) |
+| 7 Inch Touchscreen IPS DSI Display | Amazon | 1 | 38.99 | 38.99 | [Link](https://www.amazon.com/Hosyond-Touchscreen-Compatible-Capacitive-Driver-Free/dp/B0D3QB7X4Z) |
+| CanaKit Raspberry Pi 4 4GB Basic Kit | Amazon | 1 | 124.99 | 124.99 | [Link](https://www.amazon.com/CanaKit-Raspberry-4GB-Basic-Kit/dp/B07TXKY4Z9) |
+| 5 Port Gigabit Unmanaged Ethernet Switch | Amazon | 1 | 12.11 | 12.11 | [Link](https://www.amazon.com/Ethernet-Splitter-Optimization-Unmanaged-TL-SG105/dp/B00A128S24) |
+| Ethernet Cord, Black | Amazon | 1 | 15.99 | 15.99 | [Link](https://www.amazon.com/Cable-Matters-Snagless-Ethernet-Internet/dp/B0CP9XQWQ6) |
+| Sandisk Ultra microSD 64 GB | Amazon | 1 | 23.91 | 23.91 | [Link](https://www.amazon.com/SanDisk-Ultra%C2%AE-microSDHC-120MB-Class/dp/B0BDRVFDKP) |
+| | | | | **Total (2 walls):** | **1186.74** |
+
+| Item | Supplier | QTY | Price | Total | Link |
+|------|----------|-----|-------|-------|------|
+| Govee Lightwall | Amazon | 3 | 449.99 | 1349.97 | [Link](https://www.amazon.com/Govee-Lightwall-Portable-Dimmable-Waterproof/dp/B0GKPS7D76) |
+| GLEDOPTO Elite 4 Channel ESP32 WLED LED Strip Light Controller | Amazon | 3 | 30.59 | 91.77 | [Link](https://www.amazon.com/GLEDOPTO-Controller-Ethernet-Pluggable-Addressable/dp/B0FZ7WCYCK) |
+| USB 2.0 Mini Microphone | Amazon | 1 | 9.59 | 9.59 | [Link](https://www.amazon.com/Microphone-Raspberry-Desktop-Recording-YouTube/dp/B0CYM618H7) |
+| 7 Inch Touchscreen IPS DSI Display | Amazon | 1 | 38.99 | 38.99 | [Link](https://www.amazon.com/Hosyond-Touchscreen-Compatible-Capacitive-Driver-Free/dp/B0D3QB7X4Z) |
+| CanaKit Raspberry Pi 4 4GB Basic Kit | Amazon | 1 | 124.99 | 124.99 | [Link](https://www.amazon.com/CanaKit-Raspberry-4GB-Basic-Kit/dp/B07TXKY4Z9) |
+| 5 Port Gigabit Unmanaged Ethernet Switch | Amazon | 1 | 12.11 | 12.11 | [Link](https://www.amazon.com/Ethernet-Splitter-Optimization-Unmanaged-TL-SG105/dp/B00A128S24) |
+| Ethernet Cord, Black | Amazon | 1 | 15.99 | 15.99 | [Link](https://www.amazon.com/Cable-Matters-Snagless-Ethernet-Internet/dp/B0CP9XQWQ6) |
+| Sandisk Ultra microSD 64 GB | Amazon | 1 | 23.91 | 23.91 | [Link](https://www.amazon.com/SanDisk-Ultra%C2%AE-microSDHC-120MB-Class/dp/B0BDRVFDKP) |
+| | | | | **Total (3 walls):** | **1667.32** |
+
 ## Features
 
 - **43 built-in patterns** — plasma, fire, kaleidoscope, VU meter, starfield,
