@@ -1,6 +1,6 @@
 # DiscoLux
 
-<img width="1180" height="923" alt="house_music_wall" src="https://github.com/user-attachments/assets/5169879b-da8a-44c4-ba6a-3c0ac9379551" />
+<img width="4032" height="3024" alt="Dual_LightWalls" src="https://github.com/user-attachments/assets/620c80dc-06cc-4fcb-8b9b-77c3bde4c1bb" />
 
 **Real-time LED wall controller with a touch-friendly UI, built for Raspberry Pi.**
 
@@ -51,6 +51,11 @@ The complete parts needed to build a modified LightWall are available on Amazon.
 | Ethernet Cord, Black | Amazon | 1 | 15.99 | 15.99 | [Link](https://www.amazon.com/Cable-Matters-Snagless-Ethernet-Internet/dp/B0CP9XQWQ6) |
 | Sandisk Ultra microSD 64 GB | Amazon | 1 | 23.91 | 23.91 | [Link](https://www.amazon.com/SanDisk-Ultra%C2%AE-microSDHC-120MB-Class/dp/B0BDRVFDKP) |
 | | | | | **Total (3 walls):** | **1667.32** |
+
+<img width="300" height="400" alt="GoveeLightWall_Gledopto_Wiring" src="https://github.com/user-attachments/assets/2845aabe-09db-494f-a313-1a8c6eca263d" />
+<img width="400" height="300" alt="Dual_LightWalls" src="https://github.com/user-attachments/assets/6ae2ca4c-be7d-4363-9fb6-0c98bee8d601" />
+<img width="400" height="300" alt="Discolux_Interface" src="https://github.com/user-attachments/assets/5c463cf2-f396-4786-b58e-2b08fb147f86" />
+
 
 ## Features
 
