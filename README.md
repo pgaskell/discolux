@@ -86,15 +86,16 @@ The complete parts needed to build a modified LightWall are available on Amazon.
 ---
 
 ## Hardware
-
-| Component | Tested with |
+Tested with
+| Component | Description |
 |-----------|-------------|
-| Single-board computer | Raspberry Pi 5 (8 GB) — also works on Pi 4 |
-| Display | 800 × 480 DSI touchscreen (e.g. official Pi 7″) |
+| Single-board computer | Raspberry Pi 5 (8 GB) and Raspberry Pi 4B |
+| Display | 800 × 480 DSI touchscreen (e.g. official Pi 7″ or Hosyond 7") |
 | LED controller | Gledopto Elite 4D-EXMU running WLED |
 | LED matrix | 40 × 12 WS2814 RGBW (480 pixels, column-major wiring) |
+| Govee LightWall | 3 x 16 x 32 WS2812 RGB (1536 pixels, 3 output column major)|
 | Audio input | USB microphone or sound card |
-| Network | Ethernet or Wi-Fi to the WLED controller |
+| Network | Ethernet Switch for up to 3 LightWalls |
 
 ---
 
