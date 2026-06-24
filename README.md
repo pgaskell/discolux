@@ -94,7 +94,7 @@ Tested with
 | LED controller | Gledopto Elite 4D-EXMU running WLED |
 | LED matrix | 40 × 12 WS2814 RGBW (480 pixels, column-major wiring) |
 | Govee LightWall | 3 x 16 x 32 WS2812 RGB (1536 pixels, 3 output column major)|
-| Audio input | USB microphone or sound card |
+| Audio input | Cheap USB microphone |
 | Network | Ethernet Switch for up to 3 LightWalls |
 
 ---
@@ -282,9 +282,23 @@ EDIT tab.
 
 ## Pixel Mapping
 
-The LED matrix uses **column-major** wiring: the data line runs down column 0,
-then column 1, etc.  `wall.py` automatically remaps the row-major frame buffer
-to column-major order before transmission — no configuration needed.
+The software supports:
+**column-major** wiring: the data line runs down column 0,
+then down column 1 etc.
+**column-serpentine** wiring: the data line runs down column 0,
+then up column 1, then down column 2 etc.
+**row-major** wiring: the data line runs along row 0,
+then along row 1 etc.
+**row-serpentine** wiring: the data line runs along row 0,
+then back row 1 , then along row 2 etc.
+**N panel column-major** used for Govee LightWall
+**N panel column-serpentine**
+**N panel row-major**
+**N panel row-serpentine** used for my custom 
+
+
+Patches calculate rows and `wall.py` automatically remaps the row-major frame buffer
+to the configured wiring before transmission.
 
 ---
 
@@ -293,12 +307,12 @@ to column-major order before transmission — no configuration needed.
 | Protocol   | Port  | Notes |
 |------------|-------|-------|
 | DRGB       | 21324 | 3 bytes/pixel, single packet, max 489 pixels |
-| DRGBW      | 21324 | 4 bytes/pixel for RGBW strips |
-| DNRGB      | 21324 | Chunked with pixel offset, unlimited size |
-| WARLS      | 21324 | Per-pixel index addressing |
-| E1.31 sACN | 5568  | Multi-universe, 170 pixels/universe |
-| Art-Net    | 6454  | Multi-universe, 170 pixels/universe |
-| HTTP JSON  | 80    | WLED `/json/state` API (higher latency) |
+| DRGBW      | 21324 | 4 bytes/pixel for RGBW strips, max 367 pixels|
+| DNRGB      | 21324 | Chunked with pixel offset, unlimited size (not tested)|
+| WARLS      | 21324 | Per-pixel index addressing (not tested)|
+| E1.31 sACN | 5568  | Multi-universe, 170 pixels/universe working, good for high pixel count|
+| Art-Net    | 6454  | Multi-universe, 170 pixels/universe (not tested)|
+| HTTP JSON  | 80    | WLED `/json/state` API (higher latency) (not tested)|
 
 ---
 
@@ -306,16 +320,9 @@ to column-major order before transmission — no configuration needed.
 
 When deployed with `install.sh`, the boot sequence is:
 
-1. **Plymouth splash** — dark screen with rainbow "DiscoLux" title, subtitle,
-   and animated progress bar
+1. **Plymouth splash** — dark screen with "DiscoLux" title
 2. **LightDM autologin** — logs in as the target user with labwc
-3. **labwc autostart** — launches `start_discolux.sh` (waits for audio server,
-   then runs `discolux.py`)
-4. **DiscoLux fullscreen** — the app takes over the display, no desktop or
-   taskbar visible
-
-No Pi logo, no kernel text, no cursor — just splash → app.
-
+3. **labwc autostart** — launches `start_discolux.sh`
 ---
 
 ## License
