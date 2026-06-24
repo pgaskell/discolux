@@ -283,18 +283,18 @@ EDIT tab.
 ## Pixel Mapping
 
 The software supports:
-**column-major** wiring: the data line runs down column 0,
+- **column-major** wiring: the data line runs down column 0,
 then down column 1 etc.
-**column-serpentine** wiring: the data line runs down column 0,
+- **column-serpentine** wiring: the data line runs down column 0,
 then up column 1, then down column 2 etc.
-**row-major** wiring: the data line runs along row 0,
+- **row-major** wiring: the data line runs along row 0,
 then along row 1 etc.
-**row-serpentine** wiring: the data line runs along row 0,
+- **row-serpentine** wiring: the data line runs along row 0,
 then back row 1 , then along row 2 etc.
-**N panel column-major** used for Govee LightWall
-**N panel column-serpentine**
-**N panel row-major**
-**N panel row-serpentine** used for my custom 
+- **N panel column-major** used for Govee LightWall
+- **N panel column-serpentine**
+- **N panel row-major**
+- **N panel row-serpentine** used for my custom 
 
 
 Patches calculate rows and `wall.py` automatically remaps the row-major frame buffer
