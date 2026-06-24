@@ -294,7 +294,7 @@ then back row 1 , then along row 2 etc.
 - **N panel column-major** used for Govee LightWall
 - **N panel column-serpentine**
 - **N panel row-major**
-- **N panel row-serpentine** used for my custom 
+- **N panel row-serpentine** used for my custom 5 panel 40x24 LED wall
 
 
 Patches calculate rows and `wall.py` automatically remaps the row-major frame buffer
