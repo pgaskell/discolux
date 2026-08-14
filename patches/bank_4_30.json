@@ -1,0 +1,70 @@
+{
+  "pattern": "hexagonal_flow",
+  "params": {
+    "HEX_SIZE": 3.5,
+    "WAVE_SPEED": 1.51,
+    "COLOR_CYCLE": 0.36,
+    "DIRECTION": 2.67,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none",
+    "downscale": "3x"
+  },
+  "modulation": {
+    "HEX_SIZE": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "WAVE_SPEED": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "DIRECTION": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.33,
+      "offset": 0.93,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 4.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.18,
+      "offset": 0.72,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -36,
+      "gain_db": -30,
+      "attack": 0.02,
+      "release": 0.15,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -26,
+      "gain_db": -35,
+      "attack": 0.01,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

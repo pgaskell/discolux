@@ -1,0 +1,70 @@
+{
+  "pattern": "beating_hearts",
+  "params": {
+    "HEART_COUNT": 3,
+    "BEAT_SPEED": 1.78,
+    "SIZE": 0.47000000000000003,
+    "COLOR_CYCLE": 0.97,
+    "COLORMAP": "ultra_rainbow",
+    "SPRITE": "none",
+    "downscale": "1x"
+  },
+  "modulation": {
+    "HEART_COUNT": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "BEAT_SPEED": {
+      "mod_active": true,
+      "mod_source": "envh",
+      "mod_mode": "add"
+    },
+    "SIZE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "COLOR_CYCLE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "square",
+      "depth": 0.31,
+      "offset": -0.12,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "saw",
+      "depth": 0.17,
+      "offset": -0.04,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.25,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -4,
+      "gain_db": -40,
+      "attack": 0.01,
+      "release": 0.15,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -25,
+      "gain_db": 3,
+      "attack": 0.02,
+      "release": 0.1,
+      "mode": "up"
+    }
+  }
+}

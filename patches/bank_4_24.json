@@ -1,0 +1,64 @@
+{
+  "pattern": "wled_colored_bursts",
+  "params": {
+    "SPEED": 2.1,
+    "BLUR": 60,
+    "NUM_LINES": 6,
+    "COLORMAP": "green",
+    "SPRITE": "none",
+    "downscale": "4x"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    },
+    "BLUR": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "NUM_LINES": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "saw",
+      "depth": 0.91,
+      "offset": 0.46,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.25,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.08,
+      "offset": -0.2,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 4.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -27,
+      "gain_db": -25,
+      "attack": 0.005,
+      "release": 0.15,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": -27,
+      "gain_db": -11,
+      "attack": 0.001,
+      "release": 0.05,
+      "mode": "updown"
+    }
+  }
+}

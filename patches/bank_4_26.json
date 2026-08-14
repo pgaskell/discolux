@@ -1,0 +1,70 @@
+{
+  "pattern": "exploding_squares",
+  "params": {
+    "speed": 0.14,
+    "size": 11.4,
+    "color_shift": 0.39,
+    "fade": 0.61,
+    "COLORMAP": "vu_meter",
+    "SPRITE": "none",
+    "downscale": "4x"
+  },
+  "modulation": {
+    "speed": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "size": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "color_shift": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "fade": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "sine",
+      "depth": 0.7,
+      "offset": 0.36,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 4.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "saw",
+      "depth": 0.99,
+      "offset": -0.64,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.25,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": 14,
+      "gain_db": -4,
+      "attack": 0.01,
+      "release": 0.15,
+      "mode": "updown"
+    },
+    "envh": {
+      "threshold_db": -25,
+      "gain_db": 4,
+      "attack": 0.01,
+      "release": 0.025,
+      "mode": "up"
+    }
+  }
+}

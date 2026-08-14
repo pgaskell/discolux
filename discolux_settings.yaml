@@ -7,8 +7,34 @@ wiring_mode: THREE_PANEL_COL_MAJOR
 frame_rate: 30
 cycle_beats: 16
 auto_bpm: true
-brightness: 0.4
-mic_sensitivity: 0.2
+brightness: 0.6
+mic_sensitivity: 0.16
 orientation: normal
 display_mode: Point
 render_sprites: true
+multi_wled_mode: extend
+wled_devices:
+- host: 10.0.0.2
+  width: 48
+  height: 32
+  x: 0
+  y: 0
+  protocol: E1.31
+  wiring_mode: THREE_PANEL_COL_MAJOR
+  active: true
+- host: 10.0.0.3
+  width: 48
+  height: 32
+  x: 46
+  y: 0
+  protocol: E1.31
+  wiring_mode: THREE_PANEL_COL_MAJOR
+  active: false
+- host: 10.0.0.4
+  width: 40
+  height: 16
+  x: 28
+  y: 16
+  protocol: E1.31
+  wiring_mode: PANEL_SERPENTINE
+  active: false

@@ -1,0 +1,70 @@
+{
+  "pattern": "blast",
+  "params": {
+    "RATE": 0.1,
+    "NUM_STARS": 6,
+    "SPEED": 0.2,
+    "SLICE_WIDTH": 0.25,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none",
+    "downscale": "4x"
+  },
+  "modulation": {
+    "RATE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "NUM_STARS": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "replace"
+    },
+    "SPEED": {
+      "mod_active": true,
+      "mod_source": "envl",
+      "mod_mode": "add"
+    },
+    "SLICE_WIDTH": {
+      "mod_active": true,
+      "mod_source": "lfo1",
+      "mod_mode": "replace"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "square",
+      "depth": 0.8,
+      "offset": -0.6,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 1.0,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.88,
+      "offset": 0.22,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 0.5,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -16,
+      "gain_db": -12,
+      "attack": 0.001,
+      "release": 0.05,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": 2,
+      "gain_db": -31,
+      "attack": 0.02,
+      "release": 0.1,
+      "mode": "down"
+    }
+  }
+}

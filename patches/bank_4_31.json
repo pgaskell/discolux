@@ -1,0 +1,70 @@
+{
+  "pattern": "wled_sindots",
+  "params": {
+    "SPEED": 0.4,
+    "DOT_DISTANCE": 11.5,
+    "FADE_RATE": 40,
+    "BLUR": 49,
+    "COLORMAP": "rainbow",
+    "SPRITE": "none",
+    "downscale": "3x"
+  },
+  "modulation": {
+    "SPEED": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "DOT_DISTANCE": {
+      "mod_active": true,
+      "mod_source": "lfo2",
+      "mod_mode": "add"
+    },
+    "FADE_RATE": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    },
+    "BLUR": {
+      "mod_active": false,
+      "mod_source": null,
+      "mod_mode": "add"
+    }
+  },
+  "lfo_config": {
+    "lfo1": {
+      "waveform": "triangle",
+      "depth": 0.78,
+      "offset": -0.29,
+      "sync_mode": "quantized",
+      "hz": 0.5,
+      "period_beats": 0.5,
+      "phase": 0.0
+    },
+    "lfo2": {
+      "waveform": "sine",
+      "depth": 0.04,
+      "offset": 0.72,
+      "sync_mode": "quantized",
+      "hz": 0.2,
+      "period_beats": 2.0,
+      "phase": 0.0
+    }
+  },
+  "env_config": {
+    "envl": {
+      "threshold_db": -26,
+      "gain_db": 9,
+      "attack": 0.02,
+      "release": 0.15,
+      "mode": "up"
+    },
+    "envh": {
+      "threshold_db": 4,
+      "gain_db": -18,
+      "attack": 0.001,
+      "release": 0.15,
+      "mode": "down"
+    }
+  }
+}
